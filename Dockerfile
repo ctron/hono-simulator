@@ -11,4 +11,4 @@ RUN mkdir /build
 
 COPY . /build
 
-RUN scl enable rh-maven33 "cd build && mvn -B clean package -DskipTests"
+RUN scl enable rh-maven35 "cd build && mvn -B clean package -DskipTests"
