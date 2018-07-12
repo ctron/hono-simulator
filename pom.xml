@@ -17,6 +17,8 @@
     <modules>
         <module>common</module>
         <module>consumer-influxdb</module>
+        <module>simulator-http</module>
+        <module>simulator-mqtt</module>
     </modules>
 
     <dependencyManagement>
