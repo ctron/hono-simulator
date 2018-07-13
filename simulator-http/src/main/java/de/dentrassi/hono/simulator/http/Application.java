@@ -212,7 +212,7 @@ public class Application {
                 }
             }
 
-            System.out.format("%s - Sent: %8d, Success: %8d, Failure: %8d, Backlog: %8d, FRatio: %.1f", name, sent,
+            System.out.format("%s - Sent: %8d, Success: %8d, Failure: %8d, Backlog: %8d, FRatio: %.2f", name, sent,
                     success, failure, backlog, failureRatio);
             counts.forEach((code, num) -> {
                 System.out.format(", %03d: %8d", code, num);
