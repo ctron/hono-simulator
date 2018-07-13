@@ -10,6 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.demo.common;
 
+import static de.dentrassi.hono.demo.common.Config.getAs;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 
@@ -30,6 +31,10 @@ public class InfluxDbMetrics {
 
     private static final String HOSTNAME;
 
+    private static final int BATCH_SIZE = getAs("INFLUXDB_METRICS_BATCH_SIZE", 10, Integer::parseInt);
+    private static final int FLUSH_DURATION_SECONDS = getAs("INFLUXDB_METRICS_FLUSH_DURATION_SECONDS", 1,
+            Integer::parseInt);
+
     static {
         String h = System.getenv("HOSTNAME");
         if (h == null) {
@@ -47,6 +52,7 @@ public class InfluxDbMetrics {
         logger.info("InfluxDB -      Database: {}", databaseName);
 
         this.db = InfluxDBFactory.connect(uri, username, password);
+        this.db.enableBatch(BATCH_SIZE, FLUSH_DURATION_SECONDS, TimeUnit.SECONDS);
 
         if (!this.db.databaseExists(databaseName)) {
             this.db.createDatabase(databaseName);
