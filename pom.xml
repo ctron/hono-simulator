@@ -78,6 +78,12 @@
                 <version>${project.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>io.glutamate</groupId>
+                <artifactId>glutamate</artifactId>
+                <version>0.0.8</version>
+            </dependency>
+
         </dependencies>
     </dependencyManagement>
 

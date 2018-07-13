@@ -49,6 +49,8 @@ public class Application {
     private static final int TELEMETRY_MS = Integer.parseInt(System.getenv().getOrDefault("TELEMETRY_MS", "0"));
     private static final int EVENT_MS = Integer.parseInt(System.getenv().getOrDefault("EVENT_MS", "0"));
 
+    private static final boolean ASYNC = Boolean.parseBoolean(System.getenv().getOrDefault("HTTP_ASYNC", "false"));
+
     private static final boolean METRICS_ENABLED = Optional
             .ofNullable(System.getenv("ENABLE_METRICS"))
             .map(Boolean::parseBoolean)
@@ -111,8 +113,14 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device = new OkHttpDevice(username, deviceId, DEFAULT_TENANT, "hono-secret", http,
-                        register, TELEMETRY_STATS, EVENT_STATS);
+                final Device device;
+                if (ASYNC) {
+                    device = new OkHttpAsyncDevice(username, deviceId, DEFAULT_TENANT, "hono-secret", http,
+                            register, TELEMETRY_STATS, EVENT_STATS);
+                } else {
+                    device = new OkHttpSyncDevice(username, deviceId, DEFAULT_TENANT, "hono-secret", http,
+                            register, TELEMETRY_STATS, EVENT_STATS);
+                }
 
                 if (TELEMETRY_MS > 0) {
                     executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS,

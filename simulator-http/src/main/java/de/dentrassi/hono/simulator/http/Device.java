@@ -12,14 +12,17 @@ package de.dentrassi.hono.simulator.http;
 
 import static de.dentrassi.hono.demo.common.Register.shouldRegister;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.Register;
+import io.glutamate.lang.ThrowingRunnable;
 import okhttp3.Credentials;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
-import okhttp3.Response;
 
 public abstract class Device {
 
@@ -96,12 +99,38 @@ public abstract class Device {
 
     public abstract void tickEvent();
 
-    protected void handleSuccess(final Response response, final Statistics statistics) {
+    protected void tick(final Statistics statistics, final ThrowingRunnable<? extends Exception> runnable) {
+
+        if (HONO_HTTP_URL == null) {
+            return;
+        }
+
+        final Instant start = Instant.now();
+
+        statistics.sent();
+
+        try {
+            runnable.run();
+
+        } catch (final Exception e) {
+            statistics.failed();
+            logger.debug("Failed to publish", e);
+        } finally {
+            final Duration dur = Duration.between(start, Instant.now());
+            statistics.duration(dur);
+        }
     }
 
-    protected void handleFailure(final Response response, final Statistics statistics) {
-        final int code = response.code();
+    protected void handleSuccess(final Statistics statistics) {
+        statistics.success();
+    }
 
+    protected void handleException(final Throwable e, final Statistics statistics) {
+        statistics.failed();
+    }
+
+    protected void handleFailure(final int code, final Statistics statistics) {
+        statistics.failed();
         statistics.error(code);
 
         try {
