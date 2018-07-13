@@ -45,7 +45,7 @@ public class JavaDevice extends Device {
 
         final HttpURLConnection con = (HttpURLConnection) url.url().openConnection();
         try {
-            con.setDoInput(true);
+            con.setDoInput(false);
             con.setDoOutput(true);
 
             con.setConnectTimeout(1_000);
