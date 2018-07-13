@@ -50,7 +50,7 @@ public class JavaDevice extends Device {
 
             con.setConnectTimeout(1_000);
             con.setReadTimeout(1_000);
-            con.setRequestMethod(METHOD);
+            con.setRequestMethod(this.method);
             con.setRequestProperty("Content-Type", JSON.toString());
 
             if (!NOAUTH) {

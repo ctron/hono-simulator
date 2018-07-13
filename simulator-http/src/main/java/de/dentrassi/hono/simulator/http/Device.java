@@ -36,7 +36,7 @@ public abstract class Device {
     protected static final String HONO_HTTP_PORT = System.getenv("HONO_HTTP_PORT");
     protected static final HttpUrl HONO_HTTP_URL;
 
-    protected static final String METHOD = System.getenv().get("HTTP_METHOD");
+    private static final String METHOD = System.getenv().get("HTTP_METHOD");
 
     protected static final boolean AUTO_REGISTER = Boolean
             .parseBoolean(System.getenv().getOrDefault("AUTO_REGISTER", "true"));
@@ -74,6 +74,8 @@ public abstract class Device {
 
     protected final Statistics eventStatistics;
 
+    protected final String method;
+
     public Device(final String user, final String deviceId, final String tenant, final String password,
             final Register register, final Statistics telemetryStatistics,
             final Statistics eventStatistics) {
@@ -88,10 +90,11 @@ public abstract class Device {
 
         this.auth = Credentials.basic(user + "@" + tenant, password);
 
+        this.method = METHOD != null ? METHOD : "PUT";
     }
 
     protected HttpUrl createUrl(final String type) {
-        if ("POST".equals(METHOD)) {
+        if ("POST".equals(this.method)) {
             return createPostUrl(type);
         } else {
             return createPutUrl(type);

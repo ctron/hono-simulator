@@ -48,7 +48,7 @@ public abstract class OkHttpDevice extends Device {
     }
 
     private BiConsumer<Builder, RequestBody> method() {
-        if ("POST".equals(METHOD)) {
+        if ("POST".equals(this.method)) {
             return Request.Builder::post;
         } else {
             return Request.Builder::put;
