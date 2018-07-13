@@ -1,4 +1,4 @@
-package de.dentrassi.hono.simulator.http;
+package de.dentrassi.hono.simulator.http.provider;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -6,6 +6,8 @@ import java.net.HttpURLConnection;
 import java.nio.charset.StandardCharsets;
 
 import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.simulator.http.Device;
+import de.dentrassi.hono.simulator.http.Statistics;
 import io.glutamate.lang.ThrowingConsumer;
 import okhttp3.HttpUrl;
 

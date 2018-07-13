@@ -9,7 +9,7 @@
  *     Jens Reimann - initial API and implementation
  *******************************************************************************/
 
-package de.dentrassi.hono.simulator.http;
+package de.dentrassi.hono.simulator.http.provider;
 
 import java.io.IOException;
 import java.util.function.Supplier;
@@ -18,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.simulator.http.Statistics;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.OkHttpClient;

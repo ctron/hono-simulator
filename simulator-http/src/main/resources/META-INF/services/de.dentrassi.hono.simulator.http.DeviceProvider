@@ -1,0 +1,3 @@
+de.dentrassi.hono.simulator.http.provider.JavaDevice
+de.dentrassi.hono.simulator.http.provider.OkHttpAsyncDevice
+de.dentrassi.hono.simulator.http.provider.OkHttpSyncDevice

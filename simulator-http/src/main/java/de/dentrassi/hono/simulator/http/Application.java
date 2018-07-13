@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.ServiceLoader;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -49,7 +50,7 @@ public class Application {
     private static final int TELEMETRY_MS = Integer.parseInt(System.getenv().getOrDefault("TELEMETRY_MS", "0"));
     private static final int EVENT_MS = Integer.parseInt(System.getenv().getOrDefault("EVENT_MS", "0"));
 
-    private static final boolean ASYNC = Boolean.parseBoolean(System.getenv().getOrDefault("HTTP_ASYNC", "false"));
+    private static final String DEVICE_PROVIDER = System.getenv().getOrDefault("DEVICE_PROVIDER", "OKHTTP");
 
     private static final boolean METRICS_ENABLED = Optional
             .ofNullable(System.getenv("ENABLE_METRICS"))
@@ -66,6 +67,10 @@ public class Application {
     }
 
     public static void main(final String[] args) throws Exception {
+
+        logger.info("Using Device implementation: {}", DEVICE_PROVIDER);
+
+        final DeviceProvider provider = locateProvider();
 
         if (METRICS_ENABLED) {
             logger.info("Recording metrics");
@@ -113,14 +118,8 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device;
-                if (ASYNC) {
-                    device = new OkHttpAsyncDevice(username, deviceId, DEFAULT_TENANT, "hono-secret", http,
-                            register, TELEMETRY_STATS, EVENT_STATS);
-                } else {
-                    device = new OkHttpSyncDevice(username, deviceId, DEFAULT_TENANT, "hono-secret", http,
-                            register, TELEMETRY_STATS, EVENT_STATS);
-                }
+                final Device device = provider.createDevice(username, deviceId, DEFAULT_TENANT, "hono-secret", http,
+                        register, TELEMETRY_STATS, EVENT_STATS);
 
                 if (TELEMETRY_MS > 0) {
                     executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS,
@@ -138,6 +137,15 @@ public class Application {
             executor.shutdown();
         }
 
+    }
+
+    private static DeviceProvider locateProvider() {
+        for (final DeviceProvider provider : ServiceLoader.load(DeviceProvider.class)) {
+            if (provider.getName().equals(DEVICE_PROVIDER)) {
+                return provider;
+            }
+        }
+        throw new IllegalArgumentException(String.format("Unable to find device provider: '%s'", DEVICE_PROVIDER));
     }
 
     private static void detectDeadlock() {

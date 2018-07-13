@@ -9,12 +9,14 @@
  *     Jens Reimann - initial API and implementation
  *******************************************************************************/
 
-package de.dentrassi.hono.simulator.http;
+package de.dentrassi.hono.simulator.http.provider;
 
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.simulator.http.Device;
+import de.dentrassi.hono.simulator.http.Statistics;
 import io.glutamate.lang.ThrowingConsumer;
 import okhttp3.Call;
 import okhttp3.HttpUrl;
