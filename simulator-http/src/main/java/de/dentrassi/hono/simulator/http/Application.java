@@ -174,7 +174,7 @@ public class Application {
 
             final double failureRatio;
             if (sent > 0) {
-                failureRatio = BigDecimal.valueOf(failure).divide(BigDecimal.valueOf(sent), RoundingMode.HALF_UP)
+                failureRatio = BigDecimal.valueOf(failure).divide(BigDecimal.valueOf(sent), 2, RoundingMode.HALF_UP)
                         .doubleValue();
             } else {
                 failureRatio = 0.0;
