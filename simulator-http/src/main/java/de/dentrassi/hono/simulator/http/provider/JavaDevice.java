@@ -1,3 +1,13 @@
+/*******************************************************************************
+ * Copyright (c) 2017, 2018 Red Hat Inc and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     Jens Reimann - initial API and implementation
+ *******************************************************************************/
 package de.dentrassi.hono.simulator.http.provider;
 
 import java.io.IOException;
@@ -10,14 +20,23 @@ import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Statistics;
 import io.glutamate.lang.ThrowingConsumer;
 import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
 
 public class JavaDevice extends Device {
+
+    public static final class Provider extends DefaultProvider {
+
+        public Provider(final String name, final Constructor constructor) {
+            super("JAVA", JavaDevice::new);
+        }
+
+    }
 
     private final byte[] payload;
 
     public JavaDevice(final String user, final String deviceId, final String tenant, final String password,
-            final Register register,
-            final Statistics telemetryStatistics, final Statistics eventStatistics) {
+            final OkHttpClient client, final Register register, final Statistics telemetryStatistics,
+            final Statistics eventStatistics) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
         this.payload = "{foo:42}".getBytes(StandardCharsets.UTF_8);
     }

@@ -26,6 +26,14 @@ import okhttp3.Response;
 
 public class OkHttpAsyncDevice extends OkHttpDevice {
 
+    public static final class Provider extends DefaultProvider {
+
+        public Provider(final String name, final Constructor constructor) {
+            super("OKHTTP_ASYNC", OkHttpAsyncDevice::new);
+        }
+
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(OkHttpAsyncDevice.class);
 
     public OkHttpAsyncDevice(final String user, final String deviceId, final String tenant, final String password,

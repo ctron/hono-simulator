@@ -24,6 +24,14 @@ import okhttp3.Response;
 
 public class OkHttpSyncDevice extends OkHttpDevice {
 
+    public static final class Provider extends DefaultProvider {
+
+        public Provider(final String name, final Constructor constructor) {
+            super("OKHTTP", OkHttpSyncDevice::new);
+        }
+
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(OkHttpSyncDevice.class);
 
     public OkHttpSyncDevice(final String user, final String deviceId, final String tenant, final String password,
