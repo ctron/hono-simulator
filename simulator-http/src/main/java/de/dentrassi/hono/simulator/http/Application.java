@@ -16,6 +16,7 @@ import static java.lang.System.getenv;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -170,6 +171,13 @@ public class Application {
             final long durations = statistics.getDurations().getAndSet(0);
             final long backlog = statistics.getBacklog().get();
 
+            final double failureRatio;
+            if (sent > 0) {
+                failureRatio = BigDecimal.valueOf(failure).divide(BigDecimal.valueOf(sent)).doubleValue();
+            } else {
+                failureRatio = 0.0;
+            }
+
             final Map<Integer, Long> counts = new TreeMap<>();
 
             for (final Map.Entry<Integer, AtomicLong> entry : statistics.getErrors().entrySet()) {
@@ -187,6 +195,7 @@ public class Application {
                 values.put("failure", failure);
                 values.put("backlog", backlog);
                 values.put("durations", durations);
+                values.put("failureRatio", failureRatio);
                 if (sent > 0) {
                     values.put("avgDuration", (double) durations / (double) sent);
                 }
@@ -201,7 +210,8 @@ public class Application {
                 }
             }
 
-            System.out.format("%s - Sent: %8d, Success: %8d, Failure: %8d, Backlog: %8d", name, sent, success, failure,
+            System.out.format("%s - Sent: %8d, Success: %8d, Failure: %8d, Backlog: %8d, FRatio: %.1f", name, sent,
+                    success, failure,
                     backlog);
             counts.forEach((code, num) -> {
                 System.out.format(", %03d: %8d", code, num);
