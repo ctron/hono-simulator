@@ -22,6 +22,7 @@ import okhttp3.Call;
 import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.Request.Builder;
 import okhttp3.RequestBody;
 
 public abstract class OkHttpDevice extends Device {
@@ -41,9 +42,17 @@ public abstract class OkHttpDevice extends Device {
 
         this.body = RequestBody.create(JSON, "{foo: 42}");
 
-        this.telemetryRequest = createRequest(createUrl("telemetry"), Request.Builder::post);
-        this.eventRequest = createRequest(createUrl("event"), Request.Builder::post);
+        this.telemetryRequest = createRequest(createUrl("telemetry"), method());
+        this.eventRequest = createRequest(createUrl("event"), method());
 
+    }
+
+    private BiConsumer<Builder, RequestBody> method() {
+        if ("POST".equals(METHOD)) {
+            return Request.Builder::post;
+        } else {
+            return Request.Builder::put;
+        }
     }
 
     private Request createRequest(final HttpUrl url, final BiConsumer<Request.Builder, RequestBody> method) {
