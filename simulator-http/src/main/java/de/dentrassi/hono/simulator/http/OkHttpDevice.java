@@ -11,10 +11,13 @@
 
 package de.dentrassi.hono.simulator.http;
 
+import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import de.dentrassi.hono.demo.common.Register;
+import io.glutamate.lang.ThrowingConsumer;
 import okhttp3.Call;
+import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -36,41 +39,21 @@ public abstract class OkHttpDevice extends Device {
 
         this.body = RequestBody.create(JSON, "{foo: 42}");
 
-        if ("POST".equals(METHOD)) {
-            this.telemetryRequest = createPostRequest("/telemetry");
-            this.eventRequest = createPostRequest("/event");
-        } else {
-            this.telemetryRequest = createPutRequest("telemetry");
-            this.eventRequest = createPutRequest("event");
-        }
+        this.telemetryRequest = createRequest(createUrl("telemetry"), Request.Builder::post);
+        this.eventRequest = createRequest(createUrl("event"), Request.Builder::post);
+
     }
 
-    private Request createPostRequest(final String type) {
+    private Request createRequest(final HttpUrl url, final BiConsumer<Request.Builder, RequestBody> method) {
 
         if (HONO_HTTP_URL == null) {
             return null;
         }
 
         final Request.Builder builder = new Request.Builder()
-                .url(HONO_HTTP_URL.resolve(type))
-                .post(this.body);
+                .url(url);
 
-        if (!NOAUTH) {
-            builder.header("Authorization", this.auth);
-        }
-
-        return builder.build();
-    }
-
-    private Request createPutRequest(final String type) {
-        final Request.Builder builder = new Request.Builder()
-                .url(
-                        HONO_HTTP_URL.newBuilder()
-                                .addPathSegment(type)
-                                .addPathSegment(this.tenant)
-                                .addPathSegment(this.deviceId)
-                                .build())
-                .put(this.body);
+        method.accept(builder, this.body);
 
         if (!NOAUTH) {
             builder.header("Authorization", this.auth);
@@ -88,13 +71,13 @@ public abstract class OkHttpDevice extends Device {
     }
 
     @Override
-    public void tickTelemetry() {
-        tick(this.telemetryStatistics, () -> doPublish(this::createTelemetryCall, this.telemetryStatistics));
+    protected ThrowingConsumer<Statistics> tickTelemetryProvider() {
+        return (statistics) -> doPublish(this::createTelemetryCall, statistics);
     }
 
     @Override
-    public void tickEvent() {
-        tick(this.eventStatistics, () -> doPublish(this::createEventCall, this.eventStatistics));
+    protected ThrowingConsumer<Statistics> tickEventProvider() {
+        return (statistics) -> doPublish(this::createEventCall, statistics);
     }
 
     protected abstract void doPublish(final Supplier<Call> call, final Statistics statistics) throws Exception;

@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.Register;
+import io.glutamate.lang.ThrowingConsumer;
 import io.glutamate.lang.ThrowingRunnable;
 import okhttp3.Credentials;
 import okhttp3.HttpUrl;
@@ -89,15 +90,51 @@ public abstract class Device {
 
     }
 
+    protected HttpUrl createUrl(final String type) {
+        if ("POST".equals(METHOD)) {
+            return createPostUrl(type);
+        } else {
+            return createPutUrl(type);
+        }
+    }
+
+    protected HttpUrl createPostUrl(final String type) {
+        if (HONO_HTTP_URL == null) {
+            return null;
+        }
+
+        return HONO_HTTP_URL.resolve("/" + type);
+    }
+
+    protected HttpUrl createPutUrl(final String type) {
+        if (HONO_HTTP_URL == null) {
+            return null;
+        }
+
+        return HONO_HTTP_URL.newBuilder()
+                .addPathSegment(type)
+                .addPathSegment(this.tenant)
+                .addPathSegment(this.deviceId)
+                .build();
+    }
+
     public void register() throws Exception {
         if (shouldRegister()) {
             this.register.device(this.deviceId, this.user, this.password);
         }
     }
 
-    public abstract void tickTelemetry();
+    protected abstract ThrowingConsumer<Statistics> tickTelemetryProvider();
 
-    public abstract void tickEvent();
+    protected abstract ThrowingConsumer<Statistics> tickEventProvider();
+
+    public void tickTelemetry() {
+        tick(this.telemetryStatistics, () -> tickTelemetryProvider().consume(this.telemetryStatistics));
+    }
+
+    public void tickEvent() {
+        tick(this.eventStatistics, () -> tickEventProvider().consume(this.eventStatistics));
+    }
 
     protected void tick(final Statistics statistics, final ThrowingRunnable<? extends Exception> runnable) {
 
