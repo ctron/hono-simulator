@@ -17,14 +17,11 @@ import static java.lang.System.getenv;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -37,16 +34,12 @@ import org.slf4j.LoggerFactory;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Register;
 import okhttp3.ConnectionPool;
-import okhttp3.Cookie;
-import okhttp3.CookieJar;
-import okhttp3.HttpUrl;
 import okhttp3.OkHttpClient;
 
 public class Application {
+
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
     private static final String DEFAULT_TENANT = "DEFAULT_TENANT";
-
-    private static final boolean COOKIES = Boolean.parseBoolean(System.getenv().getOrDefault("HTTP_COOKIES", "false"));
 
     private static InfluxDbMetrics metrics;
 
@@ -93,29 +86,6 @@ public class Application {
             System.out.println("Enabling connection pool");
             final ConnectionPool connectionPool = new ConnectionPool(Integer.parseInt(poolSize), 1, TimeUnit.MINUTES);
             httpBuilder.connectionPool(connectionPool);
-        }
-
-        if (COOKIES) {
-            /**
-             * Cookies don't really work as we would need a cookie per device and not per
-             * URL
-             */
-            System.out.println("Enabling cookies");
-            final CookieJar cookieJar = new CookieJar() {
-                private final Map<String, List<Cookie>> cookieStore = new ConcurrentHashMap<>();
-
-                @Override
-                public void saveFromResponse(final HttpUrl url, final List<Cookie> cookies) {
-                    this.cookieStore.put(url.host(), cookies);
-                }
-
-                @Override
-                public List<Cookie> loadForRequest(final HttpUrl url) {
-                    final List<Cookie> cookies = this.cookieStore.get(url.host());
-                    return cookies != null ? cookies : new ArrayList<>();
-                }
-            };
-            httpBuilder.cookieJar(cookieJar);
         }
 
         final OkHttpClient http = httpBuilder.build();
