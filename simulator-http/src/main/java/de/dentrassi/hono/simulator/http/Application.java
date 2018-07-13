@@ -111,8 +111,8 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device = new Device(username, deviceId, DEFAULT_TENANT, "hono-secret", http, register,
-                        TELEMETRY_STATS, EVENT_STATS);
+                final Device device = new OkHttpDevice(username, deviceId, DEFAULT_TENANT, "hono-secret", http,
+                        register, TELEMETRY_STATS, EVENT_STATS);
 
                 if (TELEMETRY_MS > 0) {
                     executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS,
