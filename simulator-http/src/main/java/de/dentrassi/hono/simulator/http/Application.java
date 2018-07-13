@@ -17,6 +17,7 @@ import static java.lang.System.getenv;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadMXBean;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -173,7 +174,8 @@ public class Application {
 
             final double failureRatio;
             if (sent > 0) {
-                failureRatio = BigDecimal.valueOf(failure).divide(BigDecimal.valueOf(sent)).doubleValue();
+                failureRatio = BigDecimal.valueOf(failure).divide(BigDecimal.valueOf(sent), RoundingMode.HALF_UP)
+                        .doubleValue();
             } else {
                 failureRatio = 0.0;
             }
