@@ -11,7 +11,6 @@
 package de.dentrassi.hono.simulator.consumer;
 
 import static io.vertx.core.CompositeFuture.join;
-import static java.lang.Integer.parseInt;
 import static java.lang.System.getenv;
 import static java.util.Optional.ofNullable;
 
@@ -28,6 +27,7 @@ import org.eclipse.hono.config.ClientConfigProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dentrassi.hono.demo.common.Config;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Tags;
 import io.vertx.core.Future;
@@ -137,9 +137,7 @@ public class Application {
 
         trustedCerts.ifPresent(config::setTrustStorePath);
 
-        if (System.getenv("HONO_INITIAL_CREDITS") != null) {
-            config.setInitialCredits(parseInt(System.getenv("HONO_INITIAL_CREDITS")));
-        }
+        Config.getAs("HONO_INITIAL_CREDITS", Integer::parseInt).ifPresent(config::setInitialCredits);
 
         this.honoClient = HonoClient.newClient(this.vertx, config);
 
