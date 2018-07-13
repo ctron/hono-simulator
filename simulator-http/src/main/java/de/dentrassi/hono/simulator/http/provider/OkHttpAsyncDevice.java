@@ -26,9 +26,9 @@ import okhttp3.Response;
 
 public class OkHttpAsyncDevice extends OkHttpDevice {
 
-    public static final class Provider extends DefaultProvider {
+    public static class Provider extends DefaultProvider {
 
-        public Provider(final String name, final Constructor constructor) {
+        public Provider() {
             super("OKHTTP_ASYNC", OkHttpAsyncDevice::new);
         }
 

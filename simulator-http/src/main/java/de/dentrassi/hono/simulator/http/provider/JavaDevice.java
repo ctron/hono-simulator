@@ -24,9 +24,9 @@ import okhttp3.OkHttpClient;
 
 public class JavaDevice extends Device {
 
-    public static final class Provider extends DefaultProvider {
+    public static class Provider extends DefaultProvider {
 
-        public Provider(final String name, final Constructor constructor) {
+        public Provider() {
             super("JAVA", JavaDevice::new);
         }
 
