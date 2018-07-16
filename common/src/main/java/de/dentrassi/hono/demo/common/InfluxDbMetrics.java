@@ -10,7 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.demo.common;
 
-import static de.dentrassi.hono.demo.common.Config.getAs;
+import static de.dentrassi.hono.demo.common.Environment.getAs;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 

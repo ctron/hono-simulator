@@ -10,6 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http;
 
+import static de.dentrassi.hono.demo.common.Environment.getAs;
 import static de.dentrassi.hono.demo.common.Tags.EVENT;
 import static de.dentrassi.hono.demo.common.Tags.TELEMETRY;
 import static java.lang.System.getenv;
@@ -29,7 +30,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Function;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -84,8 +84,8 @@ public class Application {
             metrics = null;
         }
 
-        final int numberOfDevices = envOrElse("NUM_DEVICES", Integer::parseInt, 10);
-        final int numberOfThreads = envOrElse("NUM_THREADS", Integer::parseInt, 10);
+        final int numberOfDevices = getAs("NUM_DEVICES", 10, Integer::parseInt);
+        final int numberOfThreads = getAs("NUM_THREADS", 10, Integer::parseInt);
 
         final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
 
@@ -223,15 +223,5 @@ public class Application {
         } catch (final Exception e) {
             logger.error("Failed to dump statistics", e);
         }
-    }
-
-    private static <T> T envOrElse(final String name, final Function<String, T> converter, final T defaultValue) {
-        final String value = System.getenv(name);
-
-        if (value == null) {
-            return defaultValue;
-        }
-
-        return converter.apply(value);
     }
 }

@@ -14,9 +14,9 @@ package de.dentrassi.hono.demo.common;
 import java.util.Optional;
 import java.util.function.Function;
 
-public final class Config {
+public final class Environment {
 
-    private Config() {
+    private Environment() {
     }
 
     public static Optional<String> get(final String name) {

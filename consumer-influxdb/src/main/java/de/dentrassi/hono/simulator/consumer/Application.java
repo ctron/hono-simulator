@@ -27,7 +27,7 @@ import org.eclipse.hono.config.ClientConfigProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.dentrassi.hono.demo.common.Config;
+import de.dentrassi.hono.demo.common.Environment;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Tags;
 import io.vertx.core.Future;
@@ -137,7 +137,7 @@ public class Application {
 
         trustedCerts.ifPresent(config::setTrustStorePath);
 
-        Config.getAs("HONO_INITIAL_CREDITS", Integer::parseInt).ifPresent(config::setInitialCredits);
+        Environment.getAs("HONO_INITIAL_CREDITS", Integer::parseInt).ifPresent(config::setInitialCredits);
 
         this.honoClient = HonoClient.newClient(this.vertx, config);
 
