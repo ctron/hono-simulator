@@ -175,6 +175,7 @@ public class Application {
             final long success = statistics.getSuccess().getAndSet(0);
             final long failure = statistics.getFailure().getAndSet(0);
             final long durations = statistics.getDurations().getAndSet(0);
+            final long busy = statistics.getBusy().getAndSet(0);
             final long backlog = statistics.getBacklog().get();
 
             final double failureRatio;
@@ -202,6 +203,7 @@ public class Application {
                 values.put("failure", failure);
                 values.put("backlog", backlog);
                 values.put("durations", durations);
+                values.put("busy", busy);
                 values.put("failureRatio", failureRatio);
                 if (sent > 0) {
                     values.put("avgDuration", (double) durations / (double) sent);
@@ -217,8 +219,8 @@ public class Application {
                 }
             }
 
-            System.out.format("%s - Sent: %8d, Success: %8d, Failure: %8d, Backlog: %8d, FRatio: %.2f", name, sent,
-                    success, failure, backlog, failureRatio);
+            System.out.format("%s - Sent: %8d, Success: %8d, Failure: %8d, Busy: %08d, Backlog: %8d, FRatio: %.2f",
+                    name, sent, success, failure, busy, backlog, failureRatio);
             counts.forEach((code, num) -> {
                 System.out.format(", %03d: %8d", code, num);
             });

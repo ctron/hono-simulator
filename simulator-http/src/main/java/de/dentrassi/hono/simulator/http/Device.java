@@ -155,9 +155,8 @@ public abstract class Device {
         if (this.ticking.compareAndSet(false, true)) {
             this.executor.execute(() -> doTick(statistics, runnable));
         } else {
-            // mark failed ... we are busy
             statistics.sent();
-            statistics.failed();
+            statistics.busy();
         }
     }
 
