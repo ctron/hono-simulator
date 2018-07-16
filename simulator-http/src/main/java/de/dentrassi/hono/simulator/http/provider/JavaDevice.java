@@ -70,11 +70,7 @@ public class JavaDevice extends Device {
             }
 
             final int code = con.getResponseCode();
-            if (code < 200 || code > 299) {
-                handleFailure(code, statistics);
-            } else {
-                handleSuccess(statistics);
-            }
+            handleResponse(code, statistics);
 
         } finally {
             con.disconnect();

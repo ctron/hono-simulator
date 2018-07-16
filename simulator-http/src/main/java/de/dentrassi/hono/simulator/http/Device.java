@@ -186,4 +186,13 @@ public abstract class Device {
             logger.warn("Failed to handle failure", e);
         }
     }
+
+    protected void handleResponse(final int code, final Statistics statistics) {
+        if (code < 200 || code > 299) {
+            handleFailure(code, statistics);
+        } else {
+            handleSuccess(statistics);
+        }
+    
+    }
 }

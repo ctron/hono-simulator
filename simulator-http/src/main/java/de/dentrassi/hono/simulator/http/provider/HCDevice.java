@@ -89,6 +89,9 @@ public class HCDevice extends Device {
 
             final HttpEntity entity = response.getEntity();
 
+            final int code = response.getStatusLine().getStatusCode();
+            handleResponse(code, statistics);
+
             if (entity != null) {
                 entity.getContent().close();
             }
