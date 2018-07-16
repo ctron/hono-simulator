@@ -47,6 +47,7 @@ public class JavaDevice extends Device {
         try {
             con.setDoInput(false);
             con.setDoOutput(true);
+            con.setUseCaches(false);
 
             con.setConnectTimeout(1_000);
             con.setReadTimeout(1_000);
