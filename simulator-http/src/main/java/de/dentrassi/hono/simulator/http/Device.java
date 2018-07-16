@@ -153,6 +153,7 @@ public abstract class Device {
         }
 
         if (this.ticking.compareAndSet(false, true)) {
+            statistics.sent();
             this.executor.execute(() -> doTick(statistics, runnable));
         } else {
             statistics.sent();
@@ -162,8 +163,6 @@ public abstract class Device {
 
     private void doTick(final Statistics statistics, final ThrowingRunnable<? extends Exception> runnable) {
         final Instant start = Instant.now();
-
-        statistics.sent();
 
         try {
             runnable.run();
