@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -109,7 +110,8 @@ public class Application {
         final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
         statsExecutor.scheduleAtFixedRate(Application::dumpStats, 1, 1, TimeUnit.SECONDS);
 
-        final ScheduledExecutorService executor = Executors.newScheduledThreadPool(numberOfThreads);
+        final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
+        final ExecutorService tickExecutor = Executors.newFixedThreadPool(numberOfThreads);
 
         final Random r = new Random();
 
@@ -120,8 +122,8 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device = provider.createDevice(username, deviceId, DEFAULT_TENANT, "hono-secret", http,
-                        register, TELEMETRY_STATS, EVENT_STATS);
+                final Device device = provider.createDevice(tickExecutor, username, deviceId, DEFAULT_TENANT,
+                        "hono-secret", http, register, TELEMETRY_STATS, EVENT_STATS);
 
                 if (TELEMETRY_MS > 0) {
                     executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS,
@@ -137,6 +139,9 @@ public class Application {
             Thread.sleep(Long.MAX_VALUE);
         } finally {
             executor.shutdown();
+            tickExecutor.shutdown();
+            deadlockExecutor.shutdown();
+            statsExecutor.shutdown();
         }
 
     }

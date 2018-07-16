@@ -11,6 +11,7 @@
 
 package de.dentrassi.hono.simulator.http.provider;
 
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -34,10 +35,10 @@ public class OkHttpSyncDevice extends OkHttpDevice {
 
     private static final Logger logger = LoggerFactory.getLogger(OkHttpSyncDevice.class);
 
-    public OkHttpSyncDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Statistics telemetryStatistics,
-            final Statistics eventStatistics) {
-        super(user, deviceId, tenant, password, client, register, telemetryStatistics, eventStatistics);
+    public OkHttpSyncDevice(final Executor executor, final String user, final String deviceId, final String tenant,
+            final String password, final OkHttpClient client, final Register register,
+            final Statistics telemetryStatistics, final Statistics eventStatistics) {
+        super(executor, user, deviceId, tenant, password, client, register, telemetryStatistics, eventStatistics);
     }
 
     @Override

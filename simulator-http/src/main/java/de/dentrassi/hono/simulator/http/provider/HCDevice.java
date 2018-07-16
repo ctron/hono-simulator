@@ -13,6 +13,7 @@ package de.dentrassi.hono.simulator.http.provider;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.Executor;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -43,10 +44,10 @@ public class HCDevice extends Device {
     private final URI telemetryUri;
     private final URI eventUri;
 
-    public HCDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Statistics telemetryStatistics,
-            final Statistics eventStatistics) {
-        super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
+    public HCDevice(final Executor executor, final String user, final String deviceId, final String tenant,
+            final String password, final OkHttpClient client, final Register register,
+            final Statistics telemetryStatistics, final Statistics eventStatistics) {
+        super(executor, user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
 
         this.payload = "{foo:42}".getBytes(StandardCharsets.UTF_8);
 

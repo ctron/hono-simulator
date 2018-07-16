@@ -11,6 +11,7 @@
 
 package de.dentrassi.hono.simulator.http.provider;
 
+import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -33,10 +34,10 @@ public abstract class OkHttpDevice extends Device {
     private final Request telemetryRequest;
     private final Request eventRequest;
 
-    public OkHttpDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Statistics telemetryStatistics,
-            final Statistics eventStatistics) {
-        super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
+    public OkHttpDevice(final Executor executor, final String user, final String deviceId, final String tenant,
+            final String password, final OkHttpClient client, final Register register,
+            final Statistics telemetryStatistics, final Statistics eventStatistics) {
+        super(executor, user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
 
         this.client = client;
 
