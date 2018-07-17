@@ -13,6 +13,7 @@ package de.dentrassi.hono.simulator.http.provider;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.BiFunction;
 
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
@@ -49,6 +50,8 @@ public class VertxDevice extends Device {
 
     private final WebClient client;
 
+    private BiFunction<WebClient, String, HttpRequest<Buffer>> methodProvider;
+
     public VertxDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
             final Statistics telemetryStatistics, final Statistics eventStatistics) {
@@ -63,6 +66,12 @@ public class VertxDevice extends Device {
 
         this.telemetryUrl = createUrl("telemetry").toString();
         this.eventUrl = createUrl("event").toString();
+
+        if (this.method.equals("POST")) {
+            this.methodProvider = WebClient::postAbs;
+        } else {
+            this.methodProvider = WebClient::putAbs;
+        }
     }
 
     protected CompletableFuture<?> process(final Statistics statistics, final String url) throws IOException {
@@ -71,11 +80,7 @@ public class VertxDevice extends Device {
 
         final HttpRequest<Buffer> request;
 
-        if (this.method.equals("POST")) {
-            request = this.client.post(url);
-        } else {
-            request = this.client.put(url);
-        }
+        request = this.methodProvider.apply(this.client, url);
 
         if (!NOAUTH) {
             request.putHeader("Authorization", this.auth);
