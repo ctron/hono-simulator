@@ -13,7 +13,6 @@ package de.dentrassi.hono.simulator.http.provider;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.BiFunction;
 
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
@@ -45,12 +44,13 @@ public class VertxDevice extends Device {
     }
 
     private final Payload payload;
-    private final String telemetryUrl;
-    private final String eventUrl;
+
+    private final Buffer payloadBuffer;
 
     private final WebClient client;
 
-    private BiFunction<WebClient, String, HttpRequest<Buffer>> methodProvider;
+    private HttpRequest<Buffer> telemetryClient;
+    private HttpRequest<Buffer> eventClient;
 
     public VertxDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
@@ -58,37 +58,41 @@ public class VertxDevice extends Device {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
 
         this.payload = payload;
+        this.payloadBuffer = Buffer.factory.buffer(this.payload.getBytes());
 
         final WebClientOptions options = new WebClientOptions()
                 .setKeepAlive(false);
 
         this.client = WebClient.create(vertx, options);
 
-        this.telemetryUrl = createUrl("telemetry").toString();
-        this.eventUrl = createUrl("event").toString();
+        final String telemetryUrl = createUrl("telemetry").toString();
+        final String eventUrl = createUrl("event").toString();
 
         if (this.method.equals("POST")) {
-            this.methodProvider = WebClient::postAbs;
+            this.telemetryClient = this.client.postAbs(telemetryUrl);
+            this.eventClient = this.client.postAbs(eventUrl);
         } else {
-            this.methodProvider = WebClient::putAbs;
+            this.telemetryClient = this.client.postAbs(telemetryUrl);
+            this.eventClient = this.client.postAbs(eventUrl);
         }
+
+        if (!NOAUTH) {
+            this.telemetryClient.putHeader("Authorization", this.auth);
+            this.eventClient.putHeader("Authorization", this.auth);
+        }
+
+        this.telemetryClient.putHeader("Content-Type", this.payload.getContentType());
+        this.eventClient.putHeader("Content-Type", this.payload.getContentType());
+
     }
 
-    protected CompletableFuture<?> process(final Statistics statistics, final String url) throws IOException {
+    protected CompletableFuture<?> process(final Statistics statistics, final HttpRequest<Buffer> request)
+            throws IOException {
 
         final CompletableFuture<?> result = new CompletableFuture<>();
 
-        final HttpRequest<Buffer> request;
-
-        request = this.methodProvider.apply(this.client, url);
-
-        if (!NOAUTH) {
-            request.putHeader("Authorization", this.auth);
-        }
-
         request
-                .putHeader("Content-Type", this.payload.getContentType())
-                .sendBuffer(Buffer.factory.buffer(this.payload.getBytes()), ar -> {
+                .sendBuffer(this.payloadBuffer, ar -> {
 
                     final HttpResponse<Buffer> response = ar.result();
 
@@ -107,12 +111,12 @@ public class VertxDevice extends Device {
 
     @Override
     protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickTelemetryProvider() {
-        return s -> process(s, this.telemetryUrl);
+        return s -> process(s, this.telemetryClient);
     }
 
     @Override
     protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickEventProvider() {
-        return s -> process(s, this.eventUrl);
+        return s -> process(s, this.eventClient);
     }
 
 }
