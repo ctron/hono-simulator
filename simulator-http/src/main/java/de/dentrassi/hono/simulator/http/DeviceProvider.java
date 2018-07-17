@@ -11,6 +11,7 @@
 
 package de.dentrassi.hono.simulator.http;
 
+import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import okhttp3.OkHttpClient;
 
@@ -18,6 +19,6 @@ public interface DeviceProvider {
 
     String getName();
 
-    Device createDevice(String user, String deviceId, String tenant, String password,
-            OkHttpClient client, Register register, Statistics telemetryStatistics, Statistics eventStatistics);
+    Device createDevice(String user, String deviceId, String tenant, String password, OkHttpClient client,
+            Register register, Payload payload, Statistics telemetryStatistics, Statistics eventStatistics);
 }

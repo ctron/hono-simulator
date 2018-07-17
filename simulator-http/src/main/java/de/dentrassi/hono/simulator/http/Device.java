@@ -23,13 +23,10 @@ import io.glutamate.lang.ThrowingConsumer;
 import io.glutamate.lang.ThrowingRunnable;
 import okhttp3.Credentials;
 import okhttp3.HttpUrl;
-import okhttp3.MediaType;
 
 public abstract class Device {
 
     private static final Logger logger = LoggerFactory.getLogger(Device.class);
-
-    protected static final MediaType JSON = MediaType.parse("application/json");
 
     protected static final String HONO_HTTP_PROTO = System.getenv("HONO_HTTP_PROTO");
     protected static final String HONO_HTTP_HOST = System.getenv("HONO_HTTP_HOST");
@@ -76,10 +73,8 @@ public abstract class Device {
 
     protected final String method;
 
-    public Device(final String user, final String deviceId,
-            final String tenant,
-            final String password, final Register register, final Statistics telemetryStatistics,
-            final Statistics eventStatistics) {
+    public Device(final String user, final String deviceId, final String tenant, final String password,
+            final Register register, final Statistics telemetryStatistics, final Statistics eventStatistics) {
 
         this.register = register;
         this.user = user;

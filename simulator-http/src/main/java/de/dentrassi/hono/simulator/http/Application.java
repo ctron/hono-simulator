@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.Environment;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
+import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
@@ -135,7 +136,7 @@ public class Application {
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
                 final Device device = provider.createDevice(username, deviceId, DEFAULT_TENANT,
-                        "hono-secret", http, register, TELEMETRY_STATS, EVENT_STATS);
+                        "hono-secret", http, register, Payload.payload(), TELEMETRY_STATS, EVENT_STATS);
 
                 if (TELEMETRY_MS > 0) {
                     executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS);

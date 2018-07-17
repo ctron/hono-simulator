@@ -16,6 +16,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Statistics;
 import okhttp3.Call;
@@ -35,9 +36,9 @@ public class OkHttpSyncDevice extends OkHttpDevice {
     private static final Logger logger = LoggerFactory.getLogger(OkHttpSyncDevice.class);
 
     public OkHttpSyncDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Statistics telemetryStatistics,
-            final Statistics eventStatistics) {
-        super(user, deviceId, tenant, password, client, register, telemetryStatistics, eventStatistics);
+            final OkHttpClient client, final Register register, final Payload payload,
+            final Statistics telemetryStatistics, final Statistics eventStatistics) {
+        super(user, deviceId, tenant, password, client, register, payload, telemetryStatistics, eventStatistics);
     }
 
     @Override

@@ -14,8 +14,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
 
+import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Statistics;
@@ -32,15 +32,15 @@ public class JavaDevice extends Device {
 
     }
 
-    private final byte[] payload;
+    private final Payload payload;
     private final URL telemetryUrl;
     private final URL eventUrl;
 
     public JavaDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Statistics telemetryStatistics,
-            final Statistics eventStatistics) {
+            final OkHttpClient client, final Register register, final Payload payload,
+            final Statistics telemetryStatistics, final Statistics eventStatistics) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
-        this.payload = "{foo:42}".getBytes(StandardCharsets.UTF_8);
+        this.payload = payload;
 
         this.telemetryUrl = createUrl("telemetry").url();
         this.eventUrl = createUrl("event").url();
@@ -57,7 +57,7 @@ public class JavaDevice extends Device {
             con.setConnectTimeout(1_000);
             con.setReadTimeout(1_000);
             con.setRequestMethod(this.method);
-            con.setRequestProperty("Content-Type", JSON.toString());
+            con.setRequestProperty("Content-Type", this.payload.getContentType());
 
             if (!NOAUTH) {
                 con.setRequestProperty("Authorization", this.auth);
@@ -66,7 +66,7 @@ public class JavaDevice extends Device {
             con.connect();
 
             try (final OutputStream out = con.getOutputStream()) {
-                out.write(this.payload);
+                this.payload.write(out);
             }
 
             final int code = con.getResponseCode();

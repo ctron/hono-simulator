@@ -14,12 +14,14 @@ package de.dentrassi.hono.simulator.http.provider;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
+import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Statistics;
 import io.glutamate.lang.ThrowingConsumer;
 import okhttp3.Call;
 import okhttp3.HttpUrl;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Request.Builder;
@@ -34,13 +36,13 @@ public abstract class OkHttpDevice extends Device {
     private final Request eventRequest;
 
     public OkHttpDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Statistics telemetryStatistics,
-            final Statistics eventStatistics) {
+            final OkHttpClient client, final Register register, final Payload payload,
+            final Statistics telemetryStatistics, final Statistics eventStatistics) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
 
         this.client = client;
 
-        this.body = RequestBody.create(JSON, "{foo: 42}");
+        this.body = RequestBody.create(MediaType.parse(payload.getContentType()), payload.getBytes());
 
         this.telemetryRequest = createRequest(createUrl("telemetry"), method());
         this.eventRequest = createRequest(createUrl("event"), method());

@@ -12,7 +12,6 @@ package de.dentrassi.hono.simulator.http.provider;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -23,6 +22,7 @@ import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 
+import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Statistics;
@@ -39,16 +39,16 @@ public class HCDevice extends Device {
 
     }
 
-    private final byte[] payload;
+    private final Payload payload;
     private final URI telemetryUri;
     private final URI eventUri;
 
     public HCDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Statistics telemetryStatistics,
-            final Statistics eventStatistics) {
+            final OkHttpClient client, final Register register, final Payload payload,
+            final Statistics telemetryStatistics, final Statistics eventStatistics) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
 
-        this.payload = "{foo:42}".getBytes(StandardCharsets.UTF_8);
+        this.payload = payload;
 
         this.telemetryUri = createUrl("telemetry").uri();
         this.eventUri = createUrl("event").uri();
@@ -75,13 +75,13 @@ public class HCDevice extends Device {
     protected void process(final Statistics statistics, final HttpEntityEnclosingRequestBase request)
             throws IOException {
 
-        request.setHeader("Content-Type", JSON.toString());
+        request.setHeader("Content-Type", this.payload.getContentType());
 
         if (!NOAUTH) {
             request.setHeader("Authorization", this.auth);
         }
 
-        request.setEntity(new ByteArrayEntity(this.payload));
+        request.setEntity(new ByteArrayEntity(this.payload.getBytes()));
 
         try (
                 final CloseableHttpClient httpclient = HttpClients.createDefault();
