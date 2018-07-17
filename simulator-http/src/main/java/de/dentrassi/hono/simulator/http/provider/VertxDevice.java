@@ -88,12 +88,13 @@ public class VertxDevice extends Device {
                     final HttpResponse<Buffer> response = ar.result();
 
                     if (ar.succeeded()) {
-                        handleSuccess(statistics);
+                        handleResponse(response.statusCode(), statistics);
+                        result.complete(null);
                     } else {
-                        handleFailure(response.statusCode(), statistics);
+                        handleException(ar.cause(), statistics);
+                        result.completeExceptionally(ar.cause());
                     }
 
-                    result.complete(null);
                 });
 
         return result;
