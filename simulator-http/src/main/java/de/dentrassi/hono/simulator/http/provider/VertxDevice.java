@@ -81,8 +81,8 @@ public class VertxDevice extends Device {
             this.telemetryClient = this.client.postAbs(telemetryUrl);
             this.eventClient = this.client.postAbs(eventUrl);
         } else {
-            this.telemetryClient = this.client.postAbs(telemetryUrl);
-            this.eventClient = this.client.postAbs(eventUrl);
+            this.telemetryClient = this.client.putAbs(telemetryUrl);
+            this.eventClient = this.client.putAbs(eventUrl);
         }
 
         if (!NOAUTH) {
