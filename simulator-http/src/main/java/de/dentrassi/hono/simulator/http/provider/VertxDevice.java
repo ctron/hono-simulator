@@ -20,6 +20,7 @@ import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Statistics;
 import de.dentrassi.hono.simulator.http.ThrowingFunction;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
@@ -40,7 +41,15 @@ public class VertxDevice extends Device {
     private static final Vertx vertx;
 
     static {
-        vertx = Vertx.factory.vertx();
+
+        final VertxOptions options = new VertxOptions();
+
+        options.setPreferNativeTransport(true);
+
+        vertx = Vertx.factory.vertx(options);
+
+        final boolean usingNative = vertx.isNativeTransportEnabled();
+        System.out.println("Running with native: " + usingNative);
     }
 
     private final Payload payload;
