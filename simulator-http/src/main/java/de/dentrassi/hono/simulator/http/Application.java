@@ -92,18 +92,24 @@ public class Application {
 
         final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
 
+        // "minimalistic" setting
+
         if (Environment.getAs("OKHTTP_MINIMALISTIC_CONNECTION_POOL", false, Boolean::parseBoolean)) {
             System.out.println("Using minimalistic OkHttp connection pool");
             httpBuilder.connectionPool(new ConnectionPool(0, 1, TimeUnit.MILLISECONDS));
         }
 
+        // explicit connection pool setting
+
         final String poolSize = getenv("CONNECTION_POOL_SIZE");
 
         if (poolSize != null) {
-            System.out.println("Enabling connection pool");
+            System.out.println("Setting connection pool to: " + Integer.parseInt(poolSize));
             final ConnectionPool connectionPool = new ConnectionPool(Integer.parseInt(poolSize), 1, TimeUnit.MINUTES);
             httpBuilder.connectionPool(connectionPool);
         }
+
+        // create new client
 
         final OkHttpClient http = httpBuilder.build();
 
