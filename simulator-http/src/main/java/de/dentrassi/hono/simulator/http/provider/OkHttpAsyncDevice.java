@@ -12,6 +12,8 @@
 package de.dentrassi.hono.simulator.http.provider;
 
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -37,35 +39,47 @@ public class OkHttpAsyncDevice extends OkHttpDevice {
 
     private static final Logger logger = LoggerFactory.getLogger(OkHttpAsyncDevice.class);
 
-    public OkHttpAsyncDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Payload payload,
+    public OkHttpAsyncDevice(final Executor executor, final String user, final String deviceId, final String tenant,
+            final String password, final OkHttpClient client, final Register register, final Payload payload,
             final Statistics telemetryStatistics, final Statistics eventStatistics) {
-        super(user, deviceId, tenant, password, client, register, payload, telemetryStatistics, eventStatistics);
+        super(executor, user, deviceId, tenant, password, client, register, payload, telemetryStatistics,
+                eventStatistics);
     }
 
     @Override
-    protected void doPublish(final Supplier<Call> callSupplier, final Statistics statistics) throws Exception {
-        statistics.backlog();
+    protected CompletableFuture<?> doPublish(final Supplier<Call> callSupplier, final Statistics statistics)
+            throws Exception {
+
+        final CompletableFuture<?> result = new CompletableFuture<>();
+
         callSupplier.get().enqueue(new Callback() {
 
             @Override
             public void onResponse(final Call call, final Response response) throws IOException {
-                statistics.backlogSent();
-                if (response.isSuccessful()) {
-                    handleSuccess(statistics);
-                } else {
-                    logger.trace("Result code: {}", response.code());
-                    handleFailure(response.code(), statistics);
+                try {
+                    if (response.isSuccessful()) {
+                        handleSuccess(statistics);
+                    } else {
+                        logger.trace("Result code: {}", response.code());
+                        handleFailure(response.code(), statistics);
+                    }
+                    response.close();
+                } finally {
+                    result.complete(null);
                 }
-                response.close();
             }
 
             @Override
             public void onFailure(final Call call, final IOException e) {
-                statistics.backlogSent();
-                handleException(e, statistics);
-                logger.debug("Failed to tick", e);
+                try {
+                    handleException(e, statistics);
+                    logger.debug("Failed to tick", e);
+                } finally {
+                    result.completeExceptionally(e);
+                }
             }
         });
+
+        return result;
     }
 }

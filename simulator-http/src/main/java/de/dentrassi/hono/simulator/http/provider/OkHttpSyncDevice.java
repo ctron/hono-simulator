@@ -11,11 +11,15 @@
 
 package de.dentrassi.hono.simulator.http.provider;
 
+import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dentrassi.hono.demo.common.CompletableFutures;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Statistics;
@@ -34,15 +38,25 @@ public class OkHttpSyncDevice extends OkHttpDevice {
     }
 
     private static final Logger logger = LoggerFactory.getLogger(OkHttpSyncDevice.class);
+    private final Executor executor;
 
-    public OkHttpSyncDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Payload payload,
+    public OkHttpSyncDevice(final Executor executor, final String user, final String deviceId, final String tenant,
+            final String password, final OkHttpClient client, final Register register, final Payload payload,
             final Statistics telemetryStatistics, final Statistics eventStatistics) {
-        super(user, deviceId, tenant, password, client, register, payload, telemetryStatistics, eventStatistics);
+        super(executor, user, deviceId, tenant, password, client, register, payload, telemetryStatistics,
+                eventStatistics);
+
+        this.executor = executor;
     }
 
     @Override
-    protected void doPublish(final Supplier<Call> callSupplier, final Statistics statistics) throws Exception {
+    protected CompletableFuture<?> doPublish(final Supplier<Call> callSupplier, final Statistics statistics)
+            throws Exception {
+
+        return CompletableFutures.runAsync(() -> performCall(callSupplier, statistics), this.executor);
+    }
+
+    private void performCall(final Supplier<Call> callSupplier, final Statistics statistics) throws IOException {
         try (final Response response = callSupplier.get().execute()) {
             if (response.isSuccessful()) {
                 handleSuccess(statistics);

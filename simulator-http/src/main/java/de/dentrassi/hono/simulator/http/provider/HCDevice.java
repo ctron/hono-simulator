@@ -10,8 +10,12 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http.provider;
 
+import static de.dentrassi.hono.demo.common.CompletableFutures.runAsync;
+
 import java.io.IOException;
 import java.net.URI;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -26,7 +30,7 @@ import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Statistics;
-import io.glutamate.lang.ThrowingConsumer;
+import de.dentrassi.hono.simulator.http.ThrowingFunction;
 import okhttp3.OkHttpClient;
 
 public class HCDevice extends Device {
@@ -42,26 +46,18 @@ public class HCDevice extends Device {
     private final Payload payload;
     private final URI telemetryUri;
     private final URI eventUri;
+    private final Executor executor;
 
-    public HCDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Payload payload,
+    public HCDevice(final Executor executor, final String user, final String deviceId, final String tenant,
+            final String password, final OkHttpClient client, final Register register, final Payload payload,
             final Statistics telemetryStatistics, final Statistics eventStatistics) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
 
+        this.executor = executor;
         this.payload = payload;
 
         this.telemetryUri = createUrl("telemetry").uri();
         this.eventUri = createUrl("event").uri();
-    }
-
-    @Override
-    protected ThrowingConsumer<Statistics> tickTelemetryProvider() {
-        return s -> process(s, makeRequest(this.telemetryUri));
-    }
-
-    @Override
-    protected ThrowingConsumer<Statistics> tickEventProvider() {
-        return s -> process(s, makeRequest(this.eventUri));
     }
 
     private HttpEntityEnclosingRequestBase makeRequest(final URI uri) {
@@ -70,6 +66,16 @@ public class HCDevice extends Device {
         } else {
             return new HttpPut(uri);
         }
+    }
+
+    @Override
+    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickTelemetryProvider() {
+        return s -> runAsync(() -> process(s, makeRequest(this.telemetryUri)), this.executor);
+    }
+
+    @Override
+    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickEventProvider() {
+        return s -> runAsync(() -> process(s, makeRequest(this.eventUri)), this.executor);
     }
 
     protected void process(final Statistics statistics, final HttpEntityEnclosingRequestBase request)

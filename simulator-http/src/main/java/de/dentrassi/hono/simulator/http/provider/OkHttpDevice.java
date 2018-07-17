@@ -11,6 +11,8 @@
 
 package de.dentrassi.hono.simulator.http.provider;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
@@ -18,7 +20,7 @@ import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Statistics;
-import io.glutamate.lang.ThrowingConsumer;
+import de.dentrassi.hono.simulator.http.ThrowingFunction;
 import okhttp3.Call;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -35,8 +37,8 @@ public abstract class OkHttpDevice extends Device {
     private final Request telemetryRequest;
     private final Request eventRequest;
 
-    public OkHttpDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Payload payload,
+    public OkHttpDevice(final Executor executor, final String user, final String deviceId, final String tenant,
+            final String password, final OkHttpClient client, final Register register, final Payload payload,
             final Statistics telemetryStatistics, final Statistics eventStatistics) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
 
@@ -84,15 +86,16 @@ public abstract class OkHttpDevice extends Device {
     }
 
     @Override
-    protected ThrowingConsumer<Statistics> tickTelemetryProvider() {
+    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickTelemetryProvider() {
         return (statistics) -> doPublish(this::createTelemetryCall, statistics);
     }
 
     @Override
-    protected ThrowingConsumer<Statistics> tickEventProvider() {
+    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickEventProvider() {
         return (statistics) -> doPublish(this::createEventCall, statistics);
     }
 
-    protected abstract void doPublish(final Supplier<Call> call, final Statistics statistics) throws Exception;
+    protected abstract CompletableFuture<?> doPublish(final Supplier<Call> call, final Statistics statistics)
+            throws Exception;
 
 }

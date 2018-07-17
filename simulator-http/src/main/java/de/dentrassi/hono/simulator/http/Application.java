@@ -26,6 +26,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -124,7 +125,9 @@ public class Application {
         final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
         statsExecutor.scheduleAtFixedRate(Application::dumpStats, 1, 1, TimeUnit.SECONDS);
 
-        final TickExecutor executor = new TickExecutor(numberOfThreads);
+        final TickExecutor tickExecutor = new TickExecutor();
+
+        final ExecutorService executor = Executors.newFixedThreadPool(numberOfThreads);
 
         final Random r = new Random();
 
@@ -135,15 +138,15 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device = provider.createDevice(username, deviceId, DEFAULT_TENANT,
+                final Device device = provider.createDevice(executor, username, deviceId, DEFAULT_TENANT,
                         "hono-secret", http, register, Payload.payload(), TELEMETRY_STATS, EVENT_STATS);
 
                 if (TELEMETRY_MS > 0) {
-                    executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS);
+                    tickExecutor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS);
                 }
 
                 if (EVENT_MS > 0) {
-                    executor.scheduleAtFixedRate(device::tickEvent, r.nextInt(EVENT_MS), EVENT_MS);
+                    tickExecutor.scheduleAtFixedRate(device::tickEvent, r.nextInt(EVENT_MS), EVENT_MS);
                 }
             }
 

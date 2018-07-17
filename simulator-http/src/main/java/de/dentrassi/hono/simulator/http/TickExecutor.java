@@ -12,23 +12,26 @@ package de.dentrassi.hono.simulator.http;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class TickExecutor {
 
     private final ScheduledExecutorService executor;
 
-    public TickExecutor(final int numberOfThreads) {
-        this.executor = Executors.newScheduledThreadPool(numberOfThreads);
+    public TickExecutor() {
+        this.executor = Executors.newScheduledThreadPool(1);
     }
 
     public void shutdown() {
         this.executor.shutdown();
     }
 
-    public void scheduleAtFixedRate(final Runnable runnable, final long initialPeriod, final long period) {
+    public void scheduleAtFixedRate(final Supplier<CompletableFuture<?>> runnable, final long initialPeriod,
+            final long period) {
 
         this.executor.schedule(() -> {
 
@@ -38,26 +41,36 @@ public class TickExecutor {
 
     }
 
-    private void doRun(final Runnable runnable, final long period) {
+    private void doRun(final Supplier<CompletableFuture<?>> runnable, final long period) {
 
         final Instant now = Instant.now();
 
+        final CompletableFuture<?> future;
+
         try {
-            runnable.run();
-        } finally {
-
-            final Runnable doRunner = () -> {
-                doRun(runnable, period);
-            };
-
-            final long diff = period - Duration.between(now, Instant.now()).toMillis();
-            if (diff < 0) {
-                this.executor.execute(doRunner);
-            } else {
-                this.executor.schedule(doRunner, diff, TimeUnit.MILLISECONDS);
-            }
+            future = runnable.get();
+        } catch (final Exception e) {
+            finishRun(runnable, period, now);
+            return;
         }
 
+        future.handle((r, ex) -> {
+            finishRun(runnable, period, now);
+            return null;
+        });
+    }
+
+    private void finishRun(final Supplier<CompletableFuture<?>> runnable, final long period, final Instant now) {
+        final Runnable doRunner = () -> {
+            doRun(runnable, period);
+        };
+
+        final long diff = period - Duration.between(now, Instant.now()).toMillis();
+        if (diff < 0) {
+            this.executor.execute(doRunner);
+        } else {
+            this.executor.schedule(doRunner, diff, TimeUnit.MILLISECONDS);
+        }
     }
 
 }

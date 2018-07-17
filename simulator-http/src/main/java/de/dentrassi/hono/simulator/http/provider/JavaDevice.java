@@ -10,16 +10,20 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http.provider;
 
+import static de.dentrassi.hono.demo.common.CompletableFutures.runAsync;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Statistics;
-import io.glutamate.lang.ThrowingConsumer;
+import de.dentrassi.hono.simulator.http.ThrowingFunction;
 import okhttp3.OkHttpClient;
 
 public class JavaDevice extends Device {
@@ -32,14 +36,17 @@ public class JavaDevice extends Device {
 
     }
 
+    private final Executor executor;
+
     private final Payload payload;
     private final URL telemetryUrl;
     private final URL eventUrl;
 
-    public JavaDevice(final String user, final String deviceId, final String tenant, final String password,
-            final OkHttpClient client, final Register register, final Payload payload,
+    public JavaDevice(final Executor executor, final String user, final String deviceId, final String tenant,
+            final String password, final OkHttpClient client, final Register register, final Payload payload,
             final Statistics telemetryStatistics, final Statistics eventStatistics) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
+        this.executor = executor;
         this.payload = payload;
 
         this.telemetryUrl = createUrl("telemetry").url();
@@ -78,13 +85,13 @@ public class JavaDevice extends Device {
     }
 
     @Override
-    protected ThrowingConsumer<Statistics> tickTelemetryProvider() {
-        return s -> process(s, this.telemetryUrl);
+    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickTelemetryProvider() {
+        return s -> runAsync(() -> process(s, this.telemetryUrl), this.executor);
     }
 
     @Override
-    protected ThrowingConsumer<Statistics> tickEventProvider() {
-        return s -> process(s, this.eventUrl);
+    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickEventProvider() {
+        return s -> runAsync(() -> process(s, this.eventUrl), this.executor);
     }
 
 }

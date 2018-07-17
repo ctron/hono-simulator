@@ -14,13 +14,12 @@ import static de.dentrassi.hono.demo.common.Register.shouldRegister;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.concurrent.CompletableFuture;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.Register;
-import io.glutamate.lang.ThrowingConsumer;
-import io.glutamate.lang.ThrowingRunnable;
 import okhttp3.Credentials;
 import okhttp3.HttpUrl;
 
@@ -123,37 +122,49 @@ public abstract class Device {
         }
     }
 
-    protected abstract ThrowingConsumer<Statistics> tickTelemetryProvider();
+    protected abstract ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickTelemetryProvider();
 
-    protected abstract ThrowingConsumer<Statistics> tickEventProvider();
+    protected abstract ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickEventProvider();
 
-    protected void tickTelemetry() {
-        tick(this.telemetryStatistics, () -> tickTelemetryProvider().consume(this.telemetryStatistics));
+    public CompletableFuture<?> tickTelemetry() {
+        return tick(this.telemetryStatistics, () -> tickTelemetryProvider().apply(this.telemetryStatistics));
     }
 
-    protected void tickEvent() {
-        tick(this.eventStatistics, () -> tickEventProvider().consume(this.eventStatistics));
+    public CompletableFuture<?> tickEvent() {
+        return tick(this.eventStatistics, () -> tickEventProvider().apply(this.eventStatistics));
     }
 
-    protected void tick(final Statistics statistics, final ThrowingRunnable<? extends Exception> runnable) {
+    protected CompletableFuture<?> tick(final Statistics statistics,
+            final ThrowingSupplier<CompletableFuture<?>, Exception> runnable) {
 
         if (HONO_HTTP_URL == null) {
-            return;
+            return CompletableFuture.completedFuture(null);
         }
 
         statistics.sent();
         final Instant start = Instant.now();
 
-        try {
-            runnable.run();
+        final CompletableFuture<?> future;
 
+        try {
+            future = runnable.get();
         } catch (final Exception e) {
             statistics.failed();
-            logger.debug("Failed to publish", e);
-        } finally {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        return future.handle((r, ex) -> {
+
+            if (ex != null) {
+                statistics.failed();
+                logger.debug("Failed to publish", ex);
+            }
+
             final Duration dur = Duration.between(start, Instant.now());
             statistics.duration(dur);
-        }
+
+            return null;
+        });
     }
 
     protected void handleSuccess(final Statistics statistics) {
@@ -188,10 +199,6 @@ public abstract class Device {
         } else {
             handleSuccess(statistics);
         }
-
-    }
-
-    public void start(final int telemetryMs, final int eventMs) {
 
     }
 }
