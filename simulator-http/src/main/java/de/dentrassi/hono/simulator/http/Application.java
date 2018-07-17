@@ -103,7 +103,7 @@ public class Application {
 
         // explicit connection pool setting
 
-        final String poolSize = getenv("CONNECTION_POOL_SIZE");
+        final String poolSize = getenv("OKHTTP_CONNECTION_POOL_SIZE");
 
         if (poolSize != null) {
             System.out.println("Setting connection pool to: " + Integer.parseInt(poolSize));
