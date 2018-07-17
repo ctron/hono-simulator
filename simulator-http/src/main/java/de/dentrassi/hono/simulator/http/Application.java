@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dentrassi.hono.demo.common.Environment;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Register;
 import okhttp3.ConnectionPool;
@@ -89,6 +90,11 @@ public class Application {
         final int numberOfThreads = getAs("NUM_THREADS", 10, Integer::parseInt);
 
         final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
+
+        if (Environment.getAs("OKHTTP_MINIMALISTIC_CONNECTION_POOL", false, Boolean::parseBoolean)) {
+            System.out.println("Using minimalistic OkHttp connection pool");
+            httpBuilder.connectionPool(new ConnectionPool(0, 1, TimeUnit.MILLISECONDS));
+        }
 
         final String poolSize = getenv("CONNECTION_POOL_SIZE");
 
