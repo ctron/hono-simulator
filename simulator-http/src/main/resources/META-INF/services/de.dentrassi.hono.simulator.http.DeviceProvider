@@ -2,3 +2,4 @@ de.dentrassi.hono.simulator.http.provider.HCDevice$Provider
 de.dentrassi.hono.simulator.http.provider.JavaDevice$Provider
 de.dentrassi.hono.simulator.http.provider.OkHttpAsyncDevice$Provider
 de.dentrassi.hono.simulator.http.provider.OkHttpSyncDevice$Provider
+de.dentrassi.hono.simulator.http.provider.VertxDevice$Provider
