@@ -88,6 +88,8 @@ public class Application {
         final int numberOfDevices = getAs("NUM_DEVICES", 10, Integer::parseInt);
         final int numberOfThreads = getAs("NUM_THREADS", 10, Integer::parseInt);
 
+        System.out.format("#devices: %s, #threads: %s%n", numberOfDevices, numberOfThreads);
+
         final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
 
         if (Environment.getAs("OKHTTP_MINIMALISTIC_CONNECTION_POOL", false, Boolean::parseBoolean)) {
