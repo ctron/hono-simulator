@@ -115,6 +115,10 @@ public class Application {
 
         final OkHttpClient http = httpBuilder.build();
 
+        getAs("OKHTTP_DISPATCHER_MAX_REQUESTS", Integer::parseInt).ifPresent(http.dispatcher()::setMaxRequests);
+        getAs("OKHTTP_DISPATCHER_MAX_REQUESTS_PER_HOST", Integer::parseInt)
+                .ifPresent(http.dispatcher()::setMaxRequestsPerHost);
+
         final String deviceIdPrefix = System.getenv("HOSTNAME");
 
         final Register register = new Register(http, DEFAULT_TENANT);
