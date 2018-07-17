@@ -33,6 +33,7 @@ import io.vertx.core.VertxOptions;
 import okhttp3.OkHttpClient;
 
 public class Application {
+
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
     private static final String DEFAULT_TENANT = "DEFAULT_TENANT";
 
@@ -94,7 +95,11 @@ public class Application {
         options.setClustered(false);
 
         options.setEventLoopPoolSize(eventLoopPoolSize);
+        options.setPreferNativeTransport(true);
+
         final Vertx vertx = Vertx.factory.vertx(options);
+
+        System.out.println("Using native: " + vertx.isNativeTransportEnabled());
 
         final Random r = new Random();
 

@@ -12,6 +12,8 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <vertx.version>3.5.3</vertx.version>
     </properties>
 
     <modules>
@@ -87,7 +89,13 @@
             <dependency>
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-web-client</artifactId>
-                <version>3.5.3</version>
+                <version>${vertx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-mqtt</artifactId>
+                <version>${vertx.version}</version>
             </dependency>
 
             <dependency>
