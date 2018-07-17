@@ -20,7 +20,6 @@ public class Statistics {
     private final AtomicLong sent = new AtomicLong();
     private final AtomicLong success = new AtomicLong();
     private final AtomicLong failure = new AtomicLong();
-    private final AtomicLong busy = new AtomicLong();
     private final AtomicLong backlog = new AtomicLong();
     private final AtomicLong durations = new AtomicLong();
     private final Map<Integer, AtomicLong> errors = new ConcurrentHashMap<>();
@@ -31,10 +30,6 @@ public class Statistics {
 
     public void failed() {
         this.failure.incrementAndGet();
-    }
-
-    public void busy() {
-        this.busy.incrementAndGet();
     }
 
     public void success() {
@@ -82,7 +77,4 @@ public class Statistics {
         return this.errors;
     }
 
-    public AtomicLong getBusy() {
-        return this.busy;
-    }
 }

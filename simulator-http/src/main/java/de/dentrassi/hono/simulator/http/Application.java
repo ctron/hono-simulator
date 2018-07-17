@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017 Red Hat Inc and others.
+ * Copyright (c) 2017, 2018 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -26,7 +26,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -116,8 +115,7 @@ public class Application {
         final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
         statsExecutor.scheduleAtFixedRate(Application::dumpStats, 1, 1, TimeUnit.SECONDS);
 
-        final ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        final ExecutorService tickExecutor = Executors.newFixedThreadPool(numberOfThreads);
+        final TickExecutor executor = new TickExecutor(numberOfThreads);
 
         final Random r = new Random();
 
@@ -128,24 +126,21 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device = provider.createDevice(tickExecutor, username, deviceId, DEFAULT_TENANT,
+                final Device device = provider.createDevice(username, deviceId, DEFAULT_TENANT,
                         "hono-secret", http, register, TELEMETRY_STATS, EVENT_STATS);
 
                 if (TELEMETRY_MS > 0) {
-                    executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS,
-                            TimeUnit.MILLISECONDS);
+                    executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS);
                 }
 
                 if (EVENT_MS > 0) {
-                    executor.scheduleAtFixedRate(device::tickEvent, r.nextInt(EVENT_MS), EVENT_MS,
-                            TimeUnit.MILLISECONDS);
+                    executor.scheduleAtFixedRate(device::tickEvent, r.nextInt(EVENT_MS), EVENT_MS);
                 }
             }
 
             Thread.sleep(Long.MAX_VALUE);
         } finally {
             executor.shutdown();
-            tickExecutor.shutdown();
             deadlockExecutor.shutdown();
             statsExecutor.shutdown();
         }
@@ -181,7 +176,6 @@ public class Application {
             final long success = statistics.getSuccess().getAndSet(0);
             final long failure = statistics.getFailure().getAndSet(0);
             final long durations = statistics.getDurations().getAndSet(0);
-            final long busy = statistics.getBusy().getAndSet(0);
             final long backlog = statistics.getBacklog().get();
 
             final double failureRatio;
@@ -209,10 +203,10 @@ public class Application {
                 values.put("failure", failure);
                 values.put("backlog", backlog);
                 values.put("durations", durations);
-                values.put("busy", busy);
                 values.put("failureRatio", failureRatio);
                 if (sent > 0) {
-                    values.put("avgDuration", durations / ((double) sent - (double) busy));
+                    final double num = success + failure;
+                    values.put("avgDuration", durations / num);
                 }
                 metrics.updateStats(now, "http-publish", values, tags);
 
@@ -225,8 +219,8 @@ public class Application {
                 }
             }
 
-            System.out.format("%s - Sent: %8d, Success: %8d, Failure: %8d, Busy: %8d, Backlog: %8d, FRatio: %.2f",
-                    name, sent, success, failure, busy, backlog, failureRatio);
+            System.out.format("%s - Sent: %8d, Success: %8d, Failure: %8d, Backlog: %8d, FRatio: %.2f",
+                    name, sent, success, failure, backlog, failureRatio);
             counts.forEach((code, num) -> {
                 System.out.format(", %03d: %8d", code, num);
             });

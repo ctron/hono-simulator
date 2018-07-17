@@ -15,7 +15,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.Executor;
 
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
@@ -37,10 +36,10 @@ public class JavaDevice extends Device {
     private final URL telemetryUrl;
     private final URL eventUrl;
 
-    public JavaDevice(final Executor executor, final String user, final String deviceId, final String tenant,
-            final String password, final OkHttpClient client, final Register register,
-            final Statistics telemetryStatistics, final Statistics eventStatistics) {
-        super(executor, user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
+    public JavaDevice(final String user, final String deviceId, final String tenant, final String password,
+            final OkHttpClient client, final Register register, final Statistics telemetryStatistics,
+            final Statistics eventStatistics) {
+        super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
         this.payload = "{foo:42}".getBytes(StandardCharsets.UTF_8);
 
         this.telemetryUrl = createUrl("telemetry").url();

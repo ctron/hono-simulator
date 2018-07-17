@@ -14,8 +14,6 @@ import static de.dentrassi.hono.demo.common.Register.shouldRegister;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.Executor;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,8 +58,6 @@ public abstract class Device {
         }
     }
 
-    private final Executor executor;
-
     protected final String auth;
 
     protected final Register register;
@@ -80,13 +76,11 @@ public abstract class Device {
 
     protected final String method;
 
-    private final AtomicBoolean ticking = new AtomicBoolean(false);
-
-    public Device(final Executor executor, final String user, final String deviceId, final String tenant,
+    public Device(final String user, final String deviceId,
+            final String tenant,
             final String password, final Register register, final Statistics telemetryStatistics,
             final Statistics eventStatistics) {
 
-        this.executor = executor;
         this.register = register;
         this.user = user;
         this.deviceId = deviceId;
@@ -138,11 +132,11 @@ public abstract class Device {
 
     protected abstract ThrowingConsumer<Statistics> tickEventProvider();
 
-    public void tickTelemetry() {
+    protected void tickTelemetry() {
         tick(this.telemetryStatistics, () -> tickTelemetryProvider().consume(this.telemetryStatistics));
     }
 
-    public void tickEvent() {
+    protected void tickEvent() {
         tick(this.eventStatistics, () -> tickEventProvider().consume(this.eventStatistics));
     }
 
@@ -152,16 +146,7 @@ public abstract class Device {
             return;
         }
 
-        if (this.ticking.compareAndSet(false, true)) {
-            statistics.sent();
-            this.executor.execute(() -> doTick(statistics, runnable));
-        } else {
-            statistics.sent();
-            statistics.busy();
-        }
-    }
-
-    private void doTick(final Statistics statistics, final ThrowingRunnable<? extends Exception> runnable) {
+        statistics.sent();
         final Instant start = Instant.now();
 
         try {
@@ -171,8 +156,6 @@ public abstract class Device {
             statistics.failed();
             logger.debug("Failed to publish", e);
         } finally {
-            this.ticking.set(false);
-
             final Duration dur = Duration.between(start, Instant.now());
             statistics.duration(dur);
         }
@@ -210,6 +193,10 @@ public abstract class Device {
         } else {
             handleSuccess(statistics);
         }
+
+    }
+
+    public void start(final int telemetryMs, final int eventMs) {
 
     }
 }
