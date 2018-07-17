@@ -212,7 +212,7 @@ public class Application {
                 values.put("busy", busy);
                 values.put("failureRatio", failureRatio);
                 if (sent > 0) {
-                    values.put("avgDuration", (double) durations / (double) sent);
+                    values.put("avgDuration", durations / ((double) sent - (double) busy));
                 }
                 metrics.updateStats(now, "http-publish", values, tags);
 
