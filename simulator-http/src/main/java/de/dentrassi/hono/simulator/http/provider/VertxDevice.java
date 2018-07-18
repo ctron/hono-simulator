@@ -39,11 +39,15 @@ public class VertxDevice extends Device {
 
     }
 
-    private static final Vertx vertx;
+    private static Vertx vertx;
 
-    private static final WebClient client;
+    private static WebClient client;
 
-    static {
+    private static void initialize() {
+
+        if (vertx != null) {
+            return;
+        }
 
         final VertxOptions options = new VertxOptions();
 
@@ -52,7 +56,7 @@ public class VertxDevice extends Device {
         vertx = Vertx.factory.vertx(options);
 
         final boolean usingNative = vertx.isNativeTransportEnabled();
-        System.out.println("Running with native: " + usingNative);
+        System.out.println("VERTX: Running with native: " + usingNative);
 
         final WebClientOptions clientOptions = new WebClientOptions();
 
@@ -72,6 +76,8 @@ public class VertxDevice extends Device {
             final String password, final OkHttpClient client, final Register register, final Payload payload,
             final Statistics telemetryStatistics, final Statistics eventStatistics) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
+
+        initialize();
 
         this.payload = payload;
         this.payloadBuffer = Buffer.factory.buffer(this.payload.getBytes());

@@ -42,9 +42,14 @@ public class AHCDevice extends Device {
 
     }
 
-    private static final AsyncHttpClient client;
+    private static AsyncHttpClient client;
 
-    static {
+    private synchronized static void initialize() {
+
+        if (client != null) {
+            return;
+        }
+
         final Builder config = new Builder();
 
         is("AHC_POOLED_ALLOCATOR", () -> config.setAllocator(PooledByteBufAllocator.DEFAULT));
@@ -66,6 +71,8 @@ public class AHCDevice extends Device {
             final String password, final OkHttpClient client, final Register register, final Payload payload,
             final Statistics telemetryStatistics, final Statistics eventStatistics) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
+
+        initialize();
 
         this.payload = payload;
 
