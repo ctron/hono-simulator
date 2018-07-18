@@ -213,7 +213,7 @@ public class Application {
             final Instant now = Instant.now();
 
             if (metrics != null) {
-                final Map<String, Number> values = new HashMap<>(4);
+                final Map<String, Number> values = new HashMap<>();
                 values.put("sent", sent);
                 values.put("success", success);
                 values.put("failure", failure);
@@ -242,7 +242,6 @@ public class Application {
             });
             System.out.format(", %10d ms", durations);
             System.out.println();
-            System.out.flush();
         } catch (final Exception e) {
             logger.error("Failed to dump statistics", e);
         }
