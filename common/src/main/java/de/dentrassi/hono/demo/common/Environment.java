@@ -31,4 +31,10 @@ public final class Environment {
         return get(name).map(converter).orElse(defaultValue);
     }
 
+    public static void is(final String name, final Runnable runnable) {
+        if (getAs(name, false, Boolean::parseBoolean)) {
+            runnable.run();
+        }
+    }
+
 }

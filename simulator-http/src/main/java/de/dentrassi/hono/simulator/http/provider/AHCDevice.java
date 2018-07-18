@@ -10,6 +10,8 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http.provider;
 
+import static de.dentrassi.hono.demo.common.Environment.getAs;
+import static de.dentrassi.hono.demo.common.Environment.is;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.post;
 import static org.asynchttpclient.Dsl.put;
@@ -19,6 +21,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 import org.asynchttpclient.AsyncHttpClient;
+import org.asynchttpclient.DefaultAsyncHttpClientConfig.Builder;
 import org.asynchttpclient.RequestBuilder;
 
 import de.dentrassi.hono.demo.common.Payload;
@@ -26,6 +29,7 @@ import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Statistics;
 import de.dentrassi.hono.simulator.http.ThrowingFunction;
+import io.netty.buffer.PooledByteBufAllocator;
 import okhttp3.OkHttpClient;
 
 public class AHCDevice extends Device {
@@ -41,7 +45,16 @@ public class AHCDevice extends Device {
     private static final AsyncHttpClient client;
 
     static {
-        client = asyncHttpClient();
+        final Builder config = new Builder();
+
+        is("AHC_POOLED_ALLOCATOR", () -> config.setAllocator(PooledByteBufAllocator.DEFAULT));
+        getAs("AHC_IO_THREAD_COUNT", Integer::parseInt).ifPresent(config::setIoThreadsCount);
+        getAs("AHC_MAX_CONNECTIONS", Integer::parseInt).ifPresent(config::setMaxConnections);
+        getAs("AHC_MAX_CONNECTIONS_PER_HOST", Integer::parseInt).ifPresent(config::setMaxConnectionsPerHost);
+        getAs("AHC_KEEP_ALIVE", Boolean::parseBoolean).ifPresent(config::setKeepAlive);
+        getAs("AHC_USE_NATIVE_TRANSPORT", Boolean::parseBoolean).ifPresent(config::setUseNativeTransport);
+
+        client = asyncHttpClient(config);
     }
 
     private final Payload payload;
