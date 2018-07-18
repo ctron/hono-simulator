@@ -196,7 +196,9 @@ public class Application {
 
             final double failureRatio;
             if (sent > 0) {
-                failureRatio = BigDecimal.valueOf(failure).divide(BigDecimal.valueOf(sent), 2, RoundingMode.HALF_UP)
+                failureRatio = BigDecimal
+                        .valueOf(failure)
+                        .divide(BigDecimal.valueOf(sent), 2, RoundingMode.HALF_UP)
                         .doubleValue();
             } else {
                 failureRatio = 0.0;
@@ -220,9 +222,9 @@ public class Application {
                 values.put("backlog", backlog);
                 values.put("durations", durations);
                 values.put("failureRatio", failureRatio);
-                if (sent > 0) {
-                    final double num = success + failure;
-                    values.put("avgDuration", durations / num);
+                final double numSent = success + failure;
+                if (numSent > 0) {
+                    values.put("avgDuration", durations / numSent);
                 }
                 metrics.updateStats(now, "http-publish", values, tags);
 
