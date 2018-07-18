@@ -10,11 +10,12 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http.provider;
 
+import static de.dentrassi.hono.demo.common.Environment.getAs;
+
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
-import de.dentrassi.hono.demo.common.Environment;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
@@ -60,7 +61,9 @@ public class VertxDevice extends Device {
 
         final WebClientOptions clientOptions = new WebClientOptions();
 
-        Environment.getAs("VERTX_KEEP_ALIVE", Boolean::parseBoolean).ifPresent(clientOptions::setKeepAlive);
+        getAs("VERTX_KEEP_ALIVE", Boolean::parseBoolean).ifPresent(clientOptions::setKeepAlive);
+        getAs("VERTX_MAX_POOL_SIZE", Integer::parseInt).ifPresent(clientOptions::setMaxPoolSize);
+        getAs("VERTX_POOLED_BUFFERS", Boolean::parseBoolean).ifPresent(clientOptions::setUsePooledBuffers);
 
         client = WebClient.create(vertx, clientOptions);
     }
