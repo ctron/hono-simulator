@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import de.dentrassi.hono.demo.common.Environment;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
@@ -40,6 +41,8 @@ public class VertxDevice extends Device {
 
     private static final Vertx vertx;
 
+    private static final WebClient client;
+
     static {
 
         final VertxOptions options = new VertxOptions();
@@ -50,13 +53,17 @@ public class VertxDevice extends Device {
 
         final boolean usingNative = vertx.isNativeTransportEnabled();
         System.out.println("Running with native: " + usingNative);
+
+        final WebClientOptions clientOptions = new WebClientOptions();
+
+        Environment.getAs("VERTX_KEEP_ALIVE", Boolean::parseBoolean).ifPresent(clientOptions::setKeepAlive);
+
+        client = WebClient.create(vertx, clientOptions);
     }
 
     private final Payload payload;
 
     private final Buffer payloadBuffer;
-
-    private final WebClient client;
 
     private HttpRequest<Buffer> telemetryClient;
     private HttpRequest<Buffer> eventClient;
@@ -69,20 +76,15 @@ public class VertxDevice extends Device {
         this.payload = payload;
         this.payloadBuffer = Buffer.factory.buffer(this.payload.getBytes());
 
-        final WebClientOptions options = new WebClientOptions()
-                .setKeepAlive(false);
-
-        this.client = WebClient.create(vertx, options);
-
         final String telemetryUrl = createUrl("telemetry").toString();
         final String eventUrl = createUrl("event").toString();
 
         if (this.method.equals("POST")) {
-            this.telemetryClient = this.client.postAbs(telemetryUrl);
-            this.eventClient = this.client.postAbs(eventUrl);
+            this.telemetryClient = VertxDevice.client.postAbs(telemetryUrl);
+            this.eventClient = VertxDevice.client.postAbs(eventUrl);
         } else {
-            this.telemetryClient = this.client.putAbs(telemetryUrl);
-            this.eventClient = this.client.putAbs(eventUrl);
+            this.telemetryClient = VertxDevice.client.putAbs(telemetryUrl);
+            this.eventClient = VertxDevice.client.putAbs(eventUrl);
         }
 
         if (!NOAUTH) {
