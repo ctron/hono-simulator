@@ -10,7 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http.provider;
 
-import static de.dentrassi.hono.demo.common.Environment.getAs;
+import static de.dentrassi.hono.demo.common.Environment.consumeAs;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
@@ -24,6 +24,7 @@ import de.dentrassi.hono.simulator.http.ThrowingFunction;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.dns.AddressResolverOptions;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
@@ -54,6 +55,10 @@ public class VertxDevice extends Device {
 
         options.setPreferNativeTransport(true);
 
+        final AddressResolverOptions addressResolverOptions = new AddressResolverOptions();
+        consumeAs("VERTX_DNS_MAX_TTL", Integer::parseInt, addressResolverOptions::setCacheMaxTimeToLive);
+        options.setAddressResolverOptions(addressResolverOptions);
+
         vertx = Vertx.factory.vertx(options);
 
         final boolean usingNative = vertx.isNativeTransportEnabled();
@@ -61,9 +66,9 @@ public class VertxDevice extends Device {
 
         final WebClientOptions clientOptions = new WebClientOptions();
 
-        getAs("VERTX_KEEP_ALIVE", Boolean::parseBoolean).ifPresent(clientOptions::setKeepAlive);
-        getAs("VERTX_MAX_POOL_SIZE", Integer::parseInt).ifPresent(clientOptions::setMaxPoolSize);
-        getAs("VERTX_POOLED_BUFFERS", Boolean::parseBoolean).ifPresent(clientOptions::setUsePooledBuffers);
+        consumeAs("VERTX_KEEP_ALIVE", Boolean::parseBoolean, clientOptions::setKeepAlive);
+        consumeAs("VERTX_MAX_POOL_SIZE", Integer::parseInt, clientOptions::setMaxPoolSize);
+        consumeAs("VERTX_POOLED_BUFFERS", Boolean::parseBoolean, clientOptions::setUsePooledBuffers);
 
         client = WebClient.create(vertx, clientOptions);
     }

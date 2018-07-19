@@ -12,6 +12,7 @@
 package de.dentrassi.hono.demo.common;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 public final class Environment {
@@ -25,6 +26,11 @@ public final class Environment {
 
     public static <T> Optional<T> getAs(final String name, final Function<String, T> converter) {
         return get(name).map(converter);
+    }
+
+    public static <T> void consumeAs(final String name, final Function<String, T> converter,
+            final Consumer<T> consumer) {
+        getAs(name, converter).ifPresent(consumer);
     }
 
     public static <T> T getAs(final String name, final T defaultValue, final Function<String, T> converter) {
