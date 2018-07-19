@@ -15,7 +15,7 @@
 
         <vertx.version>3.5.3</vertx.version>
         <netty.version>4.1.27.Final</netty.version>
-        <netty-tcnative.version>2.0.12.Final</netty-tcnative.version>
+        <netty-tcnative.version>2.0.10.Final</netty-tcnative.version>
     </properties>
 
     <modules>
