@@ -206,6 +206,10 @@ public class Application {
                 this.telemetryConsumer::handleMessage, closeHandler -> {
                     logger.info("close handler of telemetry consumer is called");
                     this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
+
+                        System.err.println("Lost TelemetryConsumer link, restarting …");
+                        System.exit(-1);
+
                         logger.info("attempting to re-open the TelemetryConsumer link ...");
                         createTelemetryConsumer(connectedClient);
                     });
@@ -218,6 +222,10 @@ public class Application {
                 this.eventConsumer::handleMessage, closeHandler -> {
                     logger.info("close handler of event consumer is called");
                     this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
+
+                        System.err.println("Lost EventConsumer link, restarting …");
+                        System.exit(-1);
+
                         logger.info("attempting to re-open the EventConsumer link ...");
                         createEventConsumer(connectedClient);
                     });
@@ -226,8 +234,11 @@ public class Application {
 
     private void onDisconnect(final ProtonConnection con) {
         this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
-            logger.info("attempting to re-connect to Hono ...");
-            connect();
+            System.err.println("Connection to Hono lost, restarting …");
+            System.exit(-1);
+            /*
+             * reconnect still seems to have issues logger.info("attempting to re-connect to Hono ..."); connect();
+             */
         });
     }
 
