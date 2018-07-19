@@ -53,6 +53,7 @@ public class InfluxDbMetrics {
 
         this.db = InfluxDBFactory.connect(uri, username, password);
         this.db.enableBatch(BATCH_SIZE, FLUSH_DURATION_SECONDS, TimeUnit.SECONDS);
+        logger.info("InfluxDB -      Batching: {} items, {} seconds", BATCH_SIZE, FLUSH_DURATION_SECONDS);
 
         if (!this.db.databaseExists(databaseName)) {
             this.db.createDatabase(databaseName);
