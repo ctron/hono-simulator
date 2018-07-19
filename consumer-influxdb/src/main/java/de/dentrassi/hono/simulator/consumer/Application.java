@@ -10,6 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.consumer;
 
+import static de.dentrassi.hono.demo.common.Environment.is;
 import static io.vertx.core.CompositeFuture.join;
 import static java.lang.System.getenv;
 import static java.util.Optional.ofNullable;
@@ -30,8 +31,11 @@ import org.slf4j.LoggerFactory;
 import de.dentrassi.hono.demo.common.Environment;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Tags;
+import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
+import io.vertx.core.net.OpenSSLEngineOptions;
 import io.vertx.proton.ProtonClientOptions;
 import io.vertx.proton.ProtonConnection;
 
@@ -70,7 +74,7 @@ public class Application {
         final Application app = new Application(
                 getenv("HONO_TENANT"),
                 getenv("MESSAGING_SERVICE_HOST"), // HONO_DISPATCH_ROUTER_EXT_SERVICE_HOST
-                Integer.parseInt(getenv("MESSAGING_SERVICE_PORT_AMQP")), // HONO_DISPATCH_ROUTER_EXT_SERVICE_PORT
+                Environment.getAs("MESSAGING_SERVICE_PORT_AMQP", 5671, Integer::parseInt), // HONO_DISPATCH_ROUTER_EXT_SERVICE_PORT
                 getenv("HONO_USER"),
                 getenv("HONO_PASSWORD"),
                 ofNullable(getenv("HONO_TRUSTED_CERTS")));
@@ -97,7 +101,7 @@ public class Application {
 
         System.out.format("Hono Consumer - Server: %s:%s%n", host, port);
 
-        if (PERSISTENCE_ENABLED) {
+        if (PERSISTENCE_ENABLED && getenv("INFLUXDB_NAME") != null) {
             logger.info("Recording payload");
             this.consumer = new InfluxDbConsumer(makeInfluxDbUrl(),
                     getenv("INFLUXDB_USER"),
@@ -107,7 +111,7 @@ public class Application {
             this.consumer = null;
         }
 
-        if (METRICS_ENABLED) {
+        if (METRICS_ENABLED && getenv("INFLUXDB_NAME") != null) {
             logger.info("Recording metrics");
             this.metrics = new InfluxDbMetrics(makeInfluxDbUrl(),
                     getenv("INFLUXDB_USER"),
@@ -122,7 +126,17 @@ public class Application {
 
         this.tenant = tenant;
 
-        this.vertx = Vertx.vertx();
+        final VertxOptions options = new VertxOptions();
+
+        options.setPreferNativeTransport(true);
+
+        this.vertx = Vertx.vertx(options);
+
+        System.out.println("Vertx Native: " + this.vertx.isNativeTransportEnabled());
+
+        System.out.format("OpenSSL - available: %s -> %s%n", OpenSsl.isAvailable(), OpenSsl.versionString());
+        System.out.println("Key Manager: " + OpenSsl.supportsKeyManagerFactory());
+        System.out.println("Host name validation: " + OpenSsl.supportsHostnameValidation());
 
         final ClientConfigProperties config = new ClientConfigProperties();
         config.setHost(host);
@@ -183,7 +197,13 @@ public class Application {
     }
 
     private ProtonClientOptions getOptions() {
-        return new ProtonClientOptions();
+        final ProtonClientOptions options = new ProtonClientOptions();
+
+        is("WITH_OPENSSL", () -> {
+            options.setSslEngineOptions(new OpenSSLEngineOptions());
+        });
+
+        return options;
     }
 
     private void consumeTelemetryData() throws Exception {
