@@ -28,6 +28,7 @@ import org.eclipse.hono.config.ClientConfigProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dentrassi.hono.demo.common.DeadlockDetector;
 import de.dentrassi.hono.demo.common.Environment;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Tags;
@@ -79,7 +80,7 @@ public class Application {
                 getenv("HONO_PASSWORD"),
                 ofNullable(getenv("HONO_TRUSTED_CERTS")));
 
-        try {
+        try (final DeadlockDetector detector = new DeadlockDetector()) {
             app.consumeTelemetryData();
             System.out.println("Exiting application ...");
         } finally {

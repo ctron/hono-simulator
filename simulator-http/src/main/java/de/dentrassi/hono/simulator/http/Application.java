@@ -15,8 +15,6 @@ import static de.dentrassi.hono.demo.common.Tags.EVENT;
 import static de.dentrassi.hono.demo.common.Tags.TELEMETRY;
 import static java.lang.System.getenv;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.ThreadMXBean;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
@@ -35,6 +33,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dentrassi.hono.demo.common.DeadlockDetector;
 import de.dentrassi.hono.demo.common.Environment;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Payload;
@@ -73,6 +72,13 @@ public class Application {
 
     public static void main(final String[] args) throws Exception {
 
+        try (DeadlockDetector detector = new DeadlockDetector()) {
+            runSimulator();
+        }
+
+    }
+
+    private static void runSimulator() throws InterruptedException {
         logger.info("Using Device implementation: {}", DEVICE_PROVIDER);
 
         final DeviceProvider provider = locateProvider();
@@ -123,9 +129,6 @@ public class Application {
 
         final Register register = new Register(http, DEFAULT_TENANT);
 
-        final ScheduledExecutorService deadlockExecutor = Executors.newSingleThreadScheduledExecutor();
-        deadlockExecutor.scheduleAtFixedRate(Application::detectDeadlock, 1, 1, TimeUnit.SECONDS);
-
         final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
         statsExecutor.scheduleAtFixedRate(Application::dumpStats, 1, 1, TimeUnit.SECONDS);
 
@@ -157,10 +160,8 @@ public class Application {
             Thread.sleep(Long.MAX_VALUE);
         } finally {
             executor.shutdown();
-            deadlockExecutor.shutdown();
             statsExecutor.shutdown();
         }
-
     }
 
     private static DeviceProvider locateProvider() {
@@ -170,15 +171,6 @@ public class Application {
             }
         }
         throw new IllegalArgumentException(String.format("Unable to find device provider: '%s'", DEVICE_PROVIDER));
-    }
-
-    private static void detectDeadlock() {
-        final ThreadMXBean threadBean = ManagementFactory.getThreadMXBean();
-        final long[] threadIds = threadBean.findDeadlockedThreads();
-
-        if (threadIds != null) {
-            System.out.format("Threads in deadlock: %s%n", threadIds.length);
-        }
     }
 
     private static void dumpStats() {
