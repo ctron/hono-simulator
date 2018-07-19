@@ -269,6 +269,7 @@ public class Application {
                 this::onDisconnect)
 
                 .compose(connectedClient -> {
+                    logger.info("connected to Hono");
                     return join(
                             createTelemetryConsumer(connectedClient),
                             createEventConsumer(connectedClient));
