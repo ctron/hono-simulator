@@ -34,6 +34,9 @@ public class DeadlockDetector implements Closeable {
 
         if (threadIds != null) {
             System.out.format("Threads in deadlock: %s%n", threadIds.length);
+            if (Environment.getAs("EXIT_ON_DEADLOCK", true, Boolean::parseBoolean)) {
+                System.exit(-1);
+            }
         }
     }
 
