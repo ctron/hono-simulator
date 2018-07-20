@@ -72,19 +72,23 @@ public class Application {
 
     public static void main(final String[] args) throws Exception {
 
-        final Application app = new Application(
-                getenv("HONO_TENANT"),
-                getenv("MESSAGING_SERVICE_HOST"), // HONO_DISPATCH_ROUTER_EXT_SERVICE_HOST
-                Environment.getAs("MESSAGING_SERVICE_PORT_AMQP", 5671, Integer::parseInt), // HONO_DISPATCH_ROUTER_EXT_SERVICE_PORT
-                getenv("HONO_USER"),
-                getenv("HONO_PASSWORD"),
-                ofNullable(getenv("HONO_TRUSTED_CERTS")));
-
         try (final DeadlockDetector detector = new DeadlockDetector()) {
-            app.consumeTelemetryData();
-            System.out.println("Exiting application ...");
-        } finally {
-            app.close();
+
+            final Application app = new Application(
+                    getenv("HONO_TENANT"),
+                    getenv("MESSAGING_SERVICE_HOST"), // HONO_DISPATCH_ROUTER_EXT_SERVICE_HOST
+                    Environment.getAs("MESSAGING_SERVICE_PORT_AMQP", 5671, Integer::parseInt), // HONO_DISPATCH_ROUTER_EXT_SERVICE_PORT
+                    getenv("HONO_USER"),
+                    getenv("HONO_PASSWORD"),
+                    ofNullable(getenv("HONO_TRUSTED_CERTS")));
+
+            try {
+                app.consumeTelemetryData();
+                System.out.println("Exiting application ...");
+            } finally {
+                app.close();
+            }
+
         }
         System.out.println("Bye, bye!");
 
