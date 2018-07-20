@@ -126,9 +126,6 @@ public class Application {
             this.metrics = null;
         }
 
-        this.stats = Executors.newSingleThreadScheduledExecutor();
-        this.stats.scheduleAtFixedRate(this::updateStats, 1, 1, TimeUnit.SECONDS);
-
         this.tenant = tenant;
 
         final VertxOptions options = new VertxOptions();
@@ -164,6 +161,12 @@ public class Application {
 
         this.telemetryConsumer = new Consumer(this.consumer);
         this.eventConsumer = new Consumer(this.consumer);
+
+        // start update stats after having consumers created
+
+        this.stats = Executors.newSingleThreadScheduledExecutor();
+        this.stats.scheduleAtFixedRate(this::updateStats, 1, 1, TimeUnit.SECONDS);
+
     }
 
     private void close() {
@@ -229,12 +232,13 @@ public class Application {
 
         return connectedClient.createTelemetryConsumer(this.tenant,
                 this.telemetryConsumer::handleMessage, closeHandler -> {
+
                     logger.info("close handler of telemetry consumer is called");
+
+                    System.err.println("Lost TelemetryConsumer link, restarting …");
+                    System.exit(-1);
+
                     this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
-
-                        System.err.println("Lost TelemetryConsumer link, restarting …");
-                        System.exit(-1);
-
                         logger.info("attempting to re-open the TelemetryConsumer link ...");
                         createTelemetryConsumer(connectedClient);
                     });
@@ -245,12 +249,13 @@ public class Application {
 
         return connectedClient.createEventConsumer(this.tenant,
                 this.eventConsumer::handleMessage, closeHandler -> {
+
                     logger.info("close handler of event consumer is called");
+
+                    System.err.println("Lost EventConsumer link, restarting …");
+                    System.exit(-1);
+
                     this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
-
-                        System.err.println("Lost EventConsumer link, restarting …");
-                        System.exit(-1);
-
                         logger.info("attempting to re-open the EventConsumer link ...");
                         createEventConsumer(connectedClient);
                     });
@@ -258,13 +263,18 @@ public class Application {
     }
 
     private void onDisconnect(final ProtonConnection con) {
+
+        // reconnect still seems to have issues
+        System.err.println("Connection to Hono lost, restarting …");
+        System.exit(-1);
+
         this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
-            System.err.println("Connection to Hono lost, restarting …");
-            System.exit(-1);
-            /*
-             * reconnect still seems to have issues logger.info("attempting to re-connect to Hono ..."); connect();
-             */
+
+            logger.info("attempting to re-connect to Hono ...");
+            connect();
+
         });
+
     }
 
     private Future<?> connect() {
