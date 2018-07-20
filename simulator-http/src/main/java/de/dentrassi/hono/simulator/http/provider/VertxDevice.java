@@ -15,7 +15,13 @@ import static de.dentrassi.hono.demo.common.Environment.consumeAs;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import de.dentrassi.hono.demo.common.Environment;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
@@ -33,6 +39,8 @@ import okhttp3.OkHttpClient;
 
 public class VertxDevice extends Device {
 
+    private static final Logger logger = LoggerFactory.getLogger(VertxDevice.class);
+
     public static class Provider extends DefaultProvider {
 
         public Provider() {
@@ -43,7 +51,7 @@ public class VertxDevice extends Device {
 
     private static Vertx vertx;
 
-    private static WebClient client;
+    private static final AtomicReference<WebClient> client = new AtomicReference<>();
 
     private static void initialize() {
 
@@ -64,21 +72,36 @@ public class VertxDevice extends Device {
         final boolean usingNative = vertx.isNativeTransportEnabled();
         System.out.println("VERTX: Running with native: " + usingNative);
 
+        createWebClient();
+
+        Environment.consumeAs("VERTX_RECREATE_CLIENT", Long::parseLong, period -> {
+            vertx.setPeriodic(period, t -> createWebClient());
+        });
+
+    }
+
+    private static void createWebClient() {
+        logger.info("Creating new web client");
+
         final WebClientOptions clientOptions = new WebClientOptions();
 
         consumeAs("VERTX_KEEP_ALIVE", Boolean::parseBoolean, clientOptions::setKeepAlive);
         consumeAs("VERTX_MAX_POOL_SIZE", Integer::parseInt, clientOptions::setMaxPoolSize);
         consumeAs("VERTX_POOLED_BUFFERS", Boolean::parseBoolean, clientOptions::setUsePooledBuffers);
 
-        client = WebClient.create(vertx, clientOptions);
+        final WebClient oldClient = client.getAndSet(WebClient.create(vertx, clientOptions));
+        if (oldClient != null) {
+            oldClient.close();
+        }
     }
 
     private final Payload payload;
 
     private final Buffer payloadBuffer;
 
-    private HttpRequest<Buffer> telemetryClient;
-    private HttpRequest<Buffer> eventClient;
+    private final String telemetryUrl;
+
+    private final String eventUrl;
 
     public VertxDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
@@ -90,33 +113,44 @@ public class VertxDevice extends Device {
         this.payload = payload;
         this.payloadBuffer = Buffer.factory.buffer(this.payload.getBytes());
 
-        final String telemetryUrl = createUrl("telemetry").toString();
-        final String eventUrl = createUrl("event").toString();
+        this.telemetryUrl = createUrl("telemetry").toString();
+        this.eventUrl = createUrl("event").toString();
+    }
+
+    private HttpRequest<Buffer> createRequest(final String url) {
+
+        final HttpRequest<Buffer> request;
 
         if (this.method.equals("POST")) {
-            this.telemetryClient = VertxDevice.client.postAbs(telemetryUrl);
-            this.eventClient = VertxDevice.client.postAbs(eventUrl);
+            request = VertxDevice.client.get().postAbs(url);
         } else {
-            this.telemetryClient = VertxDevice.client.putAbs(telemetryUrl);
-            this.eventClient = VertxDevice.client.putAbs(eventUrl);
+            request = VertxDevice.client.get().putAbs(url);
         }
 
         if (!NOAUTH) {
-            this.telemetryClient.putHeader("Authorization", this.auth);
-            this.eventClient.putHeader("Authorization", this.auth);
+            request.putHeader("Authorization", this.auth);
         }
 
-        this.telemetryClient.putHeader("Content-Type", this.payload.getContentType());
-        this.eventClient.putHeader("Content-Type", this.payload.getContentType());
+        request.putHeader("Content-Type", this.payload.getContentType());
 
+        return request;
     }
 
-    protected CompletableFuture<?> process(final Statistics statistics, final HttpRequest<Buffer> request)
+    private HttpRequest<Buffer> createTelemetryRequest() {
+        return createRequest(this.telemetryUrl);
+    }
+
+    private HttpRequest<Buffer> createEventRequest() {
+        return createRequest(this.eventUrl);
+    }
+
+    protected CompletableFuture<?> process(final Statistics statistics, final Supplier<HttpRequest<Buffer>> request)
             throws IOException {
 
         final CompletableFuture<?> result = new CompletableFuture<>();
 
         request
+                .get()
                 .sendBuffer(this.payloadBuffer, ar -> {
 
                     final HttpResponse<Buffer> response = ar.result();
@@ -136,12 +170,12 @@ public class VertxDevice extends Device {
 
     @Override
     protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickTelemetryProvider() {
-        return s -> process(s, this.telemetryClient);
+        return s -> process(s, this::createTelemetryRequest);
     }
 
     @Override
     protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickEventProvider() {
-        return s -> process(s, this.eventClient);
+        return s -> process(s, this::createEventRequest);
     }
 
 }
