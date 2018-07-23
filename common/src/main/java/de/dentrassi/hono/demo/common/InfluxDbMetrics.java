@@ -22,10 +22,11 @@ import java.util.concurrent.TimeUnit;
 import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
+import org.influxdb.dto.Point.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class InfluxDbMetrics {
+public class InfluxDbMetrics implements EventWriter {
 
     private static final Logger logger = LoggerFactory.getLogger(InfluxDbMetrics.class);
 
@@ -45,6 +46,7 @@ public class InfluxDbMetrics {
 
     private final InfluxDB db;
 
+    @SuppressWarnings("deprecation")
     public InfluxDbMetrics(final String uri, final String username, final String password,
             final String databaseName) {
 
@@ -60,6 +62,18 @@ public class InfluxDbMetrics {
         }
 
         this.db.setDatabase(databaseName);
+    }
+
+    @Override
+    public void writeEvent(final Instant timestamp, final String title, final String description) {
+        final Builder p = Point.measurement("events");
+
+        p.addField("title", title);
+        if (description != null) {
+            p.addField("description", description);
+        }
+
+        this.db.write(p.build());
     }
 
     public void updateStats(final Instant timestamp, final String measurement, final String name, final Number value) {

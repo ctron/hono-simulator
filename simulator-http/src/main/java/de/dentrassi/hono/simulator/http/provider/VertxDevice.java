@@ -13,6 +13,7 @@ package de.dentrassi.hono.simulator.http.provider;
 import static de.dentrassi.hono.demo.common.Environment.consumeAs;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
@@ -22,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.Environment;
+import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
@@ -53,7 +55,7 @@ public class VertxDevice extends Device {
 
     private static final AtomicReference<WebClient> client = new AtomicReference<>();
 
-    private static void initialize() {
+    private static void initialize(final EventWriter eventWriter) {
 
         if (vertx != null) {
             return;
@@ -72,16 +74,18 @@ public class VertxDevice extends Device {
         final boolean usingNative = vertx.isNativeTransportEnabled();
         System.out.println("VERTX: Running with native: " + usingNative);
 
-        createWebClient();
+        createWebClient(eventWriter);
 
         Environment.consumeAs("VERTX_RECREATE_CLIENT", Long::parseLong, period -> {
-            vertx.setPeriodic(period, t -> createWebClient());
+            vertx.setPeriodic(period, t -> createWebClient(eventWriter));
         });
 
     }
 
-    private static void createWebClient() {
+    private static void createWebClient(final EventWriter eventWriter) {
         logger.info("Creating new web client");
+
+        eventWriter.writeEvent(Instant.now(), "Web Client", "Creating new vertx web clients");
 
         final WebClientOptions clientOptions = new WebClientOptions();
 
@@ -105,10 +109,10 @@ public class VertxDevice extends Device {
 
     public VertxDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
-            final Statistics telemetryStatistics, final Statistics eventStatistics) {
+            final Statistics telemetryStatistics, final Statistics eventStatistics, final EventWriter eventWriter) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
 
-        initialize();
+        initialize(eventWriter);
 
         this.payload = payload;
         this.payloadBuffer = Buffer.factory.buffer(this.payload.getBytes());

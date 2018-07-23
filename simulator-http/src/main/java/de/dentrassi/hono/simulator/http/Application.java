@@ -146,7 +146,7 @@ public class Application {
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
                 final Device device = provider.createDevice(executor, username, deviceId, DEFAULT_TENANT,
-                        "hono-secret", http, register, Payload.payload(), TELEMETRY_STATS, EVENT_STATS);
+                        "hono-secret", http, register, Payload.payload(), TELEMETRY_STATS, EVENT_STATS, metrics);
 
                 if (TELEMETRY_MS > 0) {
                     tickExecutor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS);

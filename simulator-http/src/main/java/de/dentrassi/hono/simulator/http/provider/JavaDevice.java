@@ -19,6 +19,7 @@ import java.net.URL;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
@@ -44,7 +45,7 @@ public class JavaDevice extends Device {
 
     public JavaDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
-            final Statistics telemetryStatistics, final Statistics eventStatistics) {
+            final Statistics telemetryStatistics, final Statistics eventStatistics, final EventWriter eventWriter) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
         this.executor = executor;
         this.payload = payload;

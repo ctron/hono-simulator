@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.CompletableFutures;
+import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Statistics;
@@ -42,7 +43,7 @@ public class OkHttpSyncDevice extends OkHttpDevice {
 
     public OkHttpSyncDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
-            final Statistics telemetryStatistics, final Statistics eventStatistics) {
+            final Statistics telemetryStatistics, final Statistics eventStatistics, final EventWriter eventWriter) {
         super(executor, user, deviceId, tenant, password, client, register, payload, telemetryStatistics,
                 eventStatistics);
 

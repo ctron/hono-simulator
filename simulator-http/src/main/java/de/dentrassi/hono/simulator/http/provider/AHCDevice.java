@@ -24,6 +24,7 @@ import org.asynchttpclient.AsyncHttpClient;
 import org.asynchttpclient.DefaultAsyncHttpClientConfig.Builder;
 import org.asynchttpclient.RequestBuilder;
 
+import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
@@ -69,7 +70,7 @@ public class AHCDevice extends Device {
 
     public AHCDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
-            final Statistics telemetryStatistics, final Statistics eventStatistics) {
+            final Statistics telemetryStatistics, final Statistics eventStatistics, final EventWriter eventWriter) {
         super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
 
         initialize();
