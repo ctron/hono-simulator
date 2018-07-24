@@ -59,7 +59,8 @@ public class Runner implements Context, AutoCloseable {
             return;
         }
 
-        if (this.state != null) {
+        if (this.state != current) {
+            // state changed ... check right now
             this.scheduler.execute(this::check);
         }
     }
@@ -70,6 +71,9 @@ public class Runner implements Context, AutoCloseable {
 
     @Override
     public void advance(final State state) {
+
+        logger.info("Advance to: {}", state);
+
         this.state = state;
 
         if (state == null) {
