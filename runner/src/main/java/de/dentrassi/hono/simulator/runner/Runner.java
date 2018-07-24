@@ -38,9 +38,8 @@ public class Runner implements Context, AutoCloseable {
         this.complete = new CompletableFuture<>();
         this.scheduler = Executors.newSingleThreadScheduledExecutor();
 
+        this.scheduler.execute(state::start);
         this.job = this.scheduler.scheduleWithFixedDelay(this::check, 0, period.toMillis(), TimeUnit.MILLISECONDS);
-
-        state.start();
     }
 
     protected void check() {
