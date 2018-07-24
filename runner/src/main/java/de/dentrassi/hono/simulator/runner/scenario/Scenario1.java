@@ -86,7 +86,7 @@ public class Scenario1 {
                 DEPLOYMENT_CONFIG, DC_HONO_HTTP_ADAPTER, MAX_ADAPTER_INSTANCES);
 
         final WaitForStable verify = new WaitForStable(metrics, MAX_FAILURE_RATE,
-                this.sampleDuration, Duration.ofMinutes(15), Duration.ofMinutes(5));
+                this.sampleDuration, Duration.ofMinutes(15), Duration.ofMinutes(5), this::logState);
 
         final Duration waitAfterScaleup = this.sampleDuration.plus(Duration.ofMinutes(1));
 
@@ -158,11 +158,18 @@ public class Scenario1 {
 
     }
 
-    protected void logState() {
-        final double failureRate = this.metrics.getFailureRate(this.sampleDuration);
-        final long received = this.metrics.getReceivedMessages(this.sampleDuration);
-        final long rtt = this.metrics.getRtt(this.sampleDuration);
+    protected static void logState(final Path file, final double failureRate, final long received, final long rtt,
+            final int simulators, final int adapters) {
 
+        try {
+            append(file, String.format("%s;%s;%s;%s;%s;%s%n", Instant.now(), received, failureRate, rtt,
+                    simulators, adapters));
+        } catch (final IOException e) {
+            logger.warn("Failed to log output", e);
+        }
+    }
+
+    protected void logState(final double failureRate, final long received, final long rtt) {
         final DeploymentConfig dcSim = (DeploymentConfig) this.sim.getResourceFactory().stub(DEPLOYMENT_CONFIG,
                 DC_SIMULATOR_HTTP, "simulator");
         dcSim.refresh();
@@ -174,12 +181,15 @@ public class Scenario1 {
         dcAdapter.refresh();
         final int adapters = dcAdapter.getCurrentReplicaCount();
 
-        try {
-            append(this.logFile, String.format("%s;%s;%s;%s;%s;%s%n", Instant.now(), received, failureRate, rtt,
-                    simulators, adapters));
-        } catch (final IOException e) {
-            logger.warn("Failed to log output", e);
-        }
+        logState(this.logFile, failureRate, received, rtt, simulators, adapters);
+    }
+
+    protected void logState() {
+        final double failureRate = this.metrics.getFailureRate(this.sampleDuration);
+        final long received = this.metrics.getReceivedMessages(this.sampleDuration);
+        final long rtt = this.metrics.getRtt(this.sampleDuration);
+
+        logState(failureRate, received, rtt);
     }
 
     private static void append(final Path path, final String string) throws IOException {
