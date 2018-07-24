@@ -107,7 +107,8 @@ public class Scenario1 {
 
         final Wait initState = new Wait(ofMinutes(7));
         initState
-                .next(scaleUpSimulator);
+                .then(new SimpleState(this::logState))
+                .then(scaleUpSimulator);
 
         // start
 
@@ -139,8 +140,6 @@ public class Scenario1 {
         }
 
         logger.info("System reset");
-
-        logState();
 
         // run
 
