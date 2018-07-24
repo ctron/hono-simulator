@@ -105,7 +105,7 @@ public class Scenario1 {
         verify
                 .onFailure(scaleUpAdapter);
 
-        final Wait initState = new Wait(ofMinutes(1));
+        final Wait initState = new Wait(ofMinutes(7));
         initState
                 .next(scaleUpSimulator);
 
