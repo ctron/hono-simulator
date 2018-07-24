@@ -99,9 +99,7 @@ public class Scenario1 {
                 .then(verify);
 
         verify
-                .onSuccess(
-                        new SimpleState(this::logState)
-                                .next(scaleUpSimulator));
+                .onSuccess(scaleUpSimulator);
         verify
                 .onFailure(scaleUpAdapter);
 
