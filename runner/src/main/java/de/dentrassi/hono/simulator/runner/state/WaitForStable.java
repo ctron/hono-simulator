@@ -31,11 +31,18 @@ public class WaitForStable implements State {
     private State success;
     private State failure;
 
+    private final Duration improveDuration;
+
+    private Instant sampleEnd;
+
+    private double bestFailureRatio;
+
     public WaitForStable(final Metrics metrics, final double maxFailureRatio, final Duration sampleDuration,
-            final Duration waitDuration) {
+            final Duration waitDuration, final Duration improveDuration) {
         this.metrics = metrics;
         this.maxFailureRatio = maxFailureRatio;
         this.sampleDuration = sampleDuration;
+        this.improveDuration = improveDuration;
 
         this.until = Instant.now().plus(waitDuration);
     }
@@ -50,10 +57,37 @@ public class WaitForStable implements State {
         logger.info("       sent msgs/s: {}", this.metrics.getReceivedMessages(this.sampleDuration));
         logger.info("   received msgs/s: {}", this.metrics.getReceivedMessages(this.sampleDuration));
 
-        if (currentFailureRatio < this.maxFailureRatio) {
-            context.advance(this.success);
+        if (this.sampleEnd != null) {
+
+            // already detected acceptable failure ratio
+
+            if (Instant.now().isAfter(this.sampleEnd)) {
+
+                // end of sample period
+
+                context.advance(this.success);
+
+            } else if (currentFailureRatio < this.bestFailureRatio) {
+
+                // value did improve in the accepted period of time
+
+                this.bestFailureRatio = currentFailureRatio;
+
+            }
+
+        } else if (currentFailureRatio < this.maxFailureRatio) {
+
+            // first time we detected an acceptable failure ratio
+
+            this.sampleEnd = Instant.now().plus(this.improveDuration);
+            this.bestFailureRatio = currentFailureRatio;
+
         } else if (Instant.now().isAfter(this.until)) {
+
+            // no luck ... proceed with failure
+
             context.advance(this.failure);
+
         }
     }
 

@@ -51,6 +51,12 @@ public class Scenario1 {
 
     private static final String DC_SIMULATOR_HTTP = "simulator-http";
 
+    private static final int MAX_ADAPTER_INSTANCES = 16;
+
+    private static final int MAX_SIMULATOR_INSTANCES = 48;
+
+    private static final double MAX_FAILURE_RATE = 0.02;
+
     private static final Logger logger = LoggerFactory.getLogger(Scenario1.class);
 
     private final Duration sampleDuration = Duration.ofMinutes(3);
@@ -75,13 +81,12 @@ public class Scenario1 {
         this.iot = createIoTClient();
 
         final ScaleUp scaleUpSimulator = new ScaleUp(this.sim, "simulator",
-                DEPLOYMENT_CONFIG, DC_SIMULATOR_HTTP, 46);
+                DEPLOYMENT_CONFIG, DC_SIMULATOR_HTTP, MAX_SIMULATOR_INSTANCES);
         final ScaleUp scaleUpAdapter = new ScaleUp(this.iot, "hono",
-                DEPLOYMENT_CONFIG, DC_HONO_HTTP_ADAPTER, 18);
+                DEPLOYMENT_CONFIG, DC_HONO_HTTP_ADAPTER, MAX_ADAPTER_INSTANCES);
 
-        final WaitForStable verify = new WaitForStable(metrics, 0.02,
-                this.sampleDuration,
-                Duration.ofMinutes(15));
+        final WaitForStable verify = new WaitForStable(metrics, MAX_FAILURE_RATE,
+                this.sampleDuration, Duration.ofMinutes(15), Duration.ofMinutes(5));
 
         final Duration waitAfterScaleup = this.sampleDuration.plus(Duration.ofMinutes(1));
 
