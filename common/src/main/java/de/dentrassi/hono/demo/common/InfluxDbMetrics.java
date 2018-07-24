@@ -10,7 +10,9 @@
  *******************************************************************************/
 package de.dentrassi.hono.demo.common;
 
+import static de.dentrassi.hono.demo.common.Environment.get;
 import static de.dentrassi.hono.demo.common.Environment.getAs;
+import static java.lang.System.getenv;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
 
@@ -23,10 +25,12 @@ import org.influxdb.InfluxDB;
 import org.influxdb.InfluxDBFactory;
 import org.influxdb.dto.Point;
 import org.influxdb.dto.Point.Builder;
+import org.influxdb.dto.Query;
+import org.influxdb.dto.QueryResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class InfluxDbMetrics implements EventWriter {
+public class InfluxDbMetrics implements EventWriter, AutoCloseable {
 
     private static final Logger logger = LoggerFactory.getLogger(InfluxDbMetrics.class);
 
@@ -44,7 +48,25 @@ public class InfluxDbMetrics implements EventWriter {
         HOSTNAME = h;
     }
 
+    public static String makeInfluxDbUrl() {
+        final String url = getenv("INFLUXDB_URL");
+        if (url != null && !url.isEmpty()) {
+            return url;
+        }
+
+        return String.format("http://%s:%s", getenv("INFLUXDB_SERVICE_HOST"), getenv("INFLUXDB_SERVICE_PORT_API"));
+    }
+
+    public static InfluxDbMetrics createInstance() {
+        return new InfluxDbMetrics(makeInfluxDbUrl(),
+                get("INFLUXDB_USER").orElse("user"),
+                get("INFLUXDB_PASSWORD").orElse("password"),
+                get("INFLUXDB_NAME").orElse("metrics"));
+    }
+
     private final InfluxDB db;
+
+    private final String databaseName;
 
     @SuppressWarnings("deprecation")
     public InfluxDbMetrics(final String uri, final String username, final String password,
@@ -56,6 +78,8 @@ public class InfluxDbMetrics implements EventWriter {
         this.db = InfluxDBFactory.connect(uri, username, password);
         this.db.enableBatch(BATCH_SIZE, FLUSH_DURATION_SECONDS, TimeUnit.SECONDS);
         logger.info("InfluxDB -      Batching: {} items, {} seconds", BATCH_SIZE, FLUSH_DURATION_SECONDS);
+
+        this.databaseName = databaseName;
 
         if (!this.db.databaseExists(databaseName)) {
             this.db.createDatabase(databaseName);
@@ -74,6 +98,10 @@ public class InfluxDbMetrics implements EventWriter {
         }
 
         this.db.write(p.build());
+    }
+
+    public QueryResult query(final String query) {
+        return this.db.query(new Query(query, this.databaseName));
     }
 
     public void updateStats(final Instant timestamp, final String measurement, final String name, final Number value) {
@@ -99,6 +127,11 @@ public class InfluxDbMetrics implements EventWriter {
         tags.forEach(p::tag);
 
         this.db.write(p.build());
+    }
+
+    @Override
+    public void close() {
+        this.db.close();
     }
 
 }

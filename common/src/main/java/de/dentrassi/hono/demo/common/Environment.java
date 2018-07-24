@@ -24,6 +24,11 @@ public final class Environment {
         return Optional.ofNullable(System.getenv(name));
     }
 
+    public static String getRequired(final String name) {
+        return get(name).orElseThrow(
+                () -> new IllegalArgumentException(String.format("Missing environment variable: '%s'", name)));
+    }
+
     public static <T> Optional<T> getAs(final String name, final Function<String, T> converter) {
         return get(name).map(converter);
     }

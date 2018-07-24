@@ -61,15 +61,6 @@ public class Application {
             .map(Boolean::parseBoolean)
             .orElse(true);
 
-    private static String makeInfluxDbUrl() {
-        final String url = getenv("INFLUXDB_URL");
-        if (url != null && !url.isEmpty()) {
-            return url;
-        }
-
-        return String.format("http://%s:%s", getenv("INFLUXDB_SERVICE_HOST"), getenv("INFLUXDB_SERVICE_PORT_API"));
-    }
-
     public static void main(final String[] args) throws Exception {
 
         try (DeadlockDetector detector = new DeadlockDetector()) {
@@ -85,10 +76,7 @@ public class Application {
 
         if (METRICS_ENABLED) {
             logger.info("Recording metrics");
-            metrics = new InfluxDbMetrics(makeInfluxDbUrl(),
-                    getenv("INFLUXDB_USER"),
-                    getenv("INFLUXDB_PASSWORD"),
-                    getenv("INFLUXDB_NAME"));
+            metrics = InfluxDbMetrics.createInstance();
         } else {
             metrics = null;
         }
