@@ -13,7 +13,6 @@ package de.dentrassi.hono.simulator.http.provider;
 import static de.dentrassi.hono.demo.common.Environment.consumeAs;
 
 import java.io.IOException;
-import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
@@ -85,7 +84,7 @@ public class VertxDevice extends Device {
     private static void createWebClient(final EventWriter eventWriter) {
         logger.info("Creating new web client");
 
-        eventWriter.writeEvent(Instant.now(), "Web Client", "Creating new vertx web clients");
+        eventWriter.writeEvent("Web Client", "Creating new vertx web clients");
 
         final WebClientOptions clientOptions = new WebClientOptions();
 

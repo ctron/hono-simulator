@@ -11,8 +11,18 @@
 package de.dentrassi.hono.demo.common;
 
 import java.time.Instant;
+import java.util.Map;
 
 public interface EventWriter {
 
-    void writeEvent(final Instant timestamp, final String title, final String description);
+    void writeEvent(Instant timestamp, String table, String title, String description,
+            Map<String, String> tags);
+
+    default void writeEvent(final Instant timestamp, final String title, final String description) {
+        writeEvent(timestamp, "events", title, description, null);
+    }
+
+    default void writeEvent(final String title, final String description) {
+        writeEvent(Instant.now(), title, description);
+    }
 }

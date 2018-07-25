@@ -89,15 +89,22 @@ public class InfluxDbMetrics implements EventWriter, AutoCloseable {
     }
 
     @Override
-    public void writeEvent(final Instant timestamp, final String title, final String description) {
-        final Builder p = Point.measurement("events");
+    public void writeEvent(final Instant timestamp, final String table, final String title, final String description,
+            final Map<String, String> tags) {
+
+        final Builder p = Point.measurement(table);
 
         p.addField("title", title);
         if (description != null) {
             p.addField("description", description);
         }
 
+        if (tags != null) {
+            p.tag(tags);
+        }
+
         this.db.write(p.build());
+
     }
 
     public QueryResult query(final String query) {
