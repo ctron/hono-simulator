@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 
 import org.influxdb.dto.QueryResult;
 
+import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 
 public class Metrics implements AutoCloseable {
@@ -31,6 +32,10 @@ public class Metrics implements AutoCloseable {
     public Metrics(final String type) {
         this.type = type;
         this.metrics = createInstance();
+    }
+
+    public EventWriter getEventWriter() {
+        return this.metrics;
     }
 
     @Override

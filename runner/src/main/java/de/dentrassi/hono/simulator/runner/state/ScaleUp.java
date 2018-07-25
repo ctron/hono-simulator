@@ -10,16 +10,22 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.runner.state;
 
+import static io.glutamate.util.Collections.map;
+import static java.lang.String.format;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.openshift.internal.restclient.model.DeploymentConfig;
 import com.openshift.restclient.IClient;
 
+import de.dentrassi.hono.demo.common.EventWriter;
+
 public class ScaleUp extends AbstractNextState {
 
     private static final Logger logger = LoggerFactory.getLogger(ScaleUp.class);
 
+    private final EventWriter eventWriter;
     private final IClient client;
 
     private final String namespace;
@@ -28,8 +34,9 @@ public class ScaleUp extends AbstractNextState {
 
     private final int limit;
 
-    public ScaleUp(final IClient client, final String namespace, final String resourceKind, final String resource,
-            final int limit) {
+    public ScaleUp(final EventWriter eventWriter, final IClient client, final String namespace,
+            final String resourceKind, final String resource, final int limit) {
+        this.eventWriter = eventWriter;
         this.client = client;
 
         this.namespace = namespace;
@@ -57,6 +64,12 @@ public class ScaleUp extends AbstractNextState {
 
         logger.info("Scaling to - {}/{} = {}", this.resourceKind, this.resource, r);
 
+        this.eventWriter.writeEvent("runner", "Scale Up",
+                format("%s/%s -> %s", this.resourceKind, this.resource, r), map(map -> {
+                    map.put("kind", this.resourceKind);
+                    map.put("resource", this.resource);
+                    map.put(this.resourceKind, this.resource);
+                }));
         dc.setReplicas(r);
         this.client.update(dc);
 

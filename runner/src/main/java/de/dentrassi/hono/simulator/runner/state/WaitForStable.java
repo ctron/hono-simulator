@@ -80,6 +80,7 @@ public class WaitForStable implements State {
             if (Instant.now().isAfter(this.sampleEnd)) {
 
                 log();
+                logEvent("Stable end", "Done waiting for improvments");
 
                 // end of sample period
 
@@ -101,6 +102,7 @@ public class WaitForStable implements State {
 
             this.sampleEnd = Instant.now().plus(this.improveDuration);
             this.bestFailureRatio = currentFailureRatio;
+            logEvent("Stable start", "Failure rate below limit");
 
         } else if (Instant.now().isAfter(this.until)) {
 
@@ -109,6 +111,10 @@ public class WaitForStable implements State {
             context.advance(this.failure);
 
         }
+    }
+
+    private void logEvent(final String title, final String description) {
+        this.metrics.getEventWriter().writeEvent("runner", title, description, null);
     }
 
     private void log() {

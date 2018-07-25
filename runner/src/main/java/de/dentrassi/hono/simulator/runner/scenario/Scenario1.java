@@ -79,9 +79,9 @@ public class Scenario1 {
         this.sim = createSimulationClient();
         this.iot = createIoTClient();
 
-        final ScaleUp scaleUpSimulator = new ScaleUp(this.sim, "simulator",
+        final ScaleUp scaleUpSimulator = new ScaleUp(metrics.getEventWriter(), this.sim, "simulator",
                 DEPLOYMENT_CONFIG, DC_SIMULATOR_HTTP, MAX_SIMULATOR_INSTANCES);
-        final ScaleUp scaleUpAdapter = new ScaleUp(this.iot, "hono",
+        final ScaleUp scaleUpAdapter = new ScaleUp(metrics.getEventWriter(), this.iot, "hono",
                 DEPLOYMENT_CONFIG, DC_HONO_HTTP_ADAPTER, MAX_ADAPTER_INSTANCES);
 
         final WaitForStable verify = new WaitForStable(metrics, MAX_FAILURE_RATE,

@@ -18,6 +18,11 @@ public interface EventWriter {
     void writeEvent(Instant timestamp, String table, String title, String description,
             Map<String, String> tags);
 
+    default void writeEvent(final String table, final String title, final String description,
+            final Map<String, String> tags) {
+        writeEvent(Instant.now(), table, title, description, tags);
+    }
+
     default void writeEvent(final Instant timestamp, final String title, final String description) {
         writeEvent(timestamp, "events", title, description, null);
     }
