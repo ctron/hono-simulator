@@ -16,7 +16,6 @@ import static de.dentrassi.hono.simulator.runner.OpenShift.createSimulationClien
 import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
-import static java.time.Duration.ofMinutes;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -103,7 +102,7 @@ public class Scenario1 {
         verify
                 .onFailure(scaleUpAdapter);
 
-        final Wait initState = new Wait(ofMinutes(7));
+        final Wait initState = new Wait(this.sampleDuration.multipliedBy(2));
         initState
                 .then(new SimpleState(this::logState))
                 .then(scaleUpSimulator);
