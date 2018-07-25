@@ -159,7 +159,7 @@ public class Scenario1 {
             final int simulators, final int adapters) {
 
         try {
-            append(file, String.format("%s;%s;%s;%s;%s;%s%n", Instant.now(), received, failureRate, rtt,
+            append(file, String.format("%s;%s;%.4f;%s;%s;%s%n", Instant.now(), received, failureRate, rtt,
                     simulators, adapters));
         } catch (final IOException e) {
             logger.warn("Failed to log output", e);
