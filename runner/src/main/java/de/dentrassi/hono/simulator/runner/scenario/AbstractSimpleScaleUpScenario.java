@@ -45,6 +45,17 @@ import de.dentrassi.hono.simulator.runner.state.Wait;
 import de.dentrassi.hono.simulator.runner.state.WaitForStable;
 import io.glutamate.util.concurrent.Await;
 
+/**
+ * A basic scale-up scenario.
+ * <p>
+ * The scenario will scale up simulators one by one. After each scale-up it will wait for a bit and then start checking
+ * for a failure rate to stay under a certain threshold. If it doesn't then it will try to compensate by scaling up
+ * another protocol adapter instance.
+ * </p>
+ * <p>
+ * The scenario will end once it cannot scale up, either the simulators or the adapters.
+ * </p>
+ */
 public abstract class AbstractSimpleScaleUpScenario {
 
     private static final String DC_HONO_HTTP_ADAPTER = "hono-adapter-http-vertx";
@@ -76,6 +87,11 @@ public abstract class AbstractSimpleScaleUpScenario {
         this.sim = createSimulationClient();
         this.iot = createIoTClient();
 
+        logger.info("Prepare scenerio:");
+        logger.info("\tMaximum adapter instances: {}", getMaximumAdapterInstances());
+        logger.info("\tMaximum simulator instances: {}", getMaximumSimulatorInstances());
+        logger.info("\tMaximum allowed failure ratio: {}", String.format("%.0f%%", 100.0 * getMaximumFailureRatio()));
+
     }
 
     protected Duration getSampleDuration() {
@@ -95,7 +111,6 @@ public abstract class AbstractSimpleScaleUpScenario {
     }
 
     public void run() {
-
         final ScaleUp scaleUpSimulator = new ScaleUp(this.metrics.getEventWriter(), this.sim, "simulator",
                 DEPLOYMENT_CONFIG, DC_SIMULATOR_HTTP, getMaximumSimulatorInstances());
         final ScaleUp scaleUpAdapter = new ScaleUp(this.metrics.getEventWriter(), this.iot, "hono",

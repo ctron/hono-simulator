@@ -14,7 +14,18 @@ import java.time.Duration;
 
 import de.dentrassi.hono.simulator.runner.Metrics;
 
-public class Scenario2 extends AbstractSimpleScaleUpScenario {
+/**
+ * Variation of Scenario1 for maxInstances=1.
+ * <p>
+ * The default deployment of Hono uses one worker thread per service. The baseline architecture for scale-test-2 uses 9
+ * threads per service in order to improve performance. This test deploys the same number of services, but each in a
+ * single JVM in order to compare the difference.
+ * </p>
+ * <p>
+ * For this test to run in a reasonable amount of time, the durations have been shorted.
+ * </p>
+ */
+public class Scenario1LowMax extends AbstractSimpleScaleUpScenario {
 
     private static final int MAX_ADAPTER_INSTANCES = 16 * 9;
 
@@ -22,8 +33,8 @@ public class Scenario2 extends AbstractSimpleScaleUpScenario {
 
     private static final double MAX_FAILURE_RATE = 0.02;
 
-    public Scenario2(final Metrics metrics) {
-        super(metrics, "scenario2");
+    public Scenario1LowMax(final Metrics metrics) {
+        super(metrics, "scenario1-low-max");
     }
 
     @Override

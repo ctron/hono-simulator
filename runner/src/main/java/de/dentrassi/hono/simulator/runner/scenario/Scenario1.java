@@ -12,6 +12,12 @@ package de.dentrassi.hono.simulator.runner.scenario;
 
 import de.dentrassi.hono.simulator.runner.Metrics;
 
+/**
+ * A basic scale-up scenario based on the baseline architecture of the scale-test-2.
+ * <p>
+ * This will scale up to a maximum of 16 adapter instances and at most scale up to 96.000 msgs/s (48 * 2.000 msgs/s).
+ * </p>
+ */
 public class Scenario1 extends AbstractSimpleScaleUpScenario {
 
     private static final int MAX_ADAPTER_INSTANCES = 16;
