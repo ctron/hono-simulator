@@ -12,7 +12,7 @@ package de.dentrassi.hono.simulator.runner;
 
 import java.time.Duration;
 
-import de.dentrassi.hono.simulator.runner.scenario.Scenario1;
+import de.dentrassi.hono.simulator.runner.scenario.Scenario1LowMax;
 
 public class Application implements AutoCloseable {
 
@@ -31,7 +31,7 @@ public class Application implements AutoCloseable {
     }
 
     public void run() {
-        new Scenario1(this.metrics).run();
+        new Scenario1LowMax(this.metrics).run();
     }
 
     @Override
