@@ -10,16 +10,20 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.runner.scenario;
 
+import java.time.Duration;
+
 import de.dentrassi.hono.simulator.runner.Metrics;
 
-public class Scenario1 extends AbstractSimpleScaleUpScenario {
+public class Scenario2 extends AbstractSimpleScaleUpScenario {
 
-    private static final int MAX_ADAPTER_INSTANCES = 16;
+    private static final int MAX_ADAPTER_INSTANCES = 16 * 9;
 
-    private static final int MAX_SIMULATOR_INSTANCES = 48;
+    private static final int MAX_SIMULATOR_INSTANCES = 64;
 
-    public Scenario1(final Metrics metrics) {
-        super(metrics, "scenario1");
+    private static final double MAX_FAILURE_RATE = 0.02;
+
+    public Scenario2(final Metrics metrics) {
+        super(metrics, "scenario2");
     }
 
     @Override
@@ -28,8 +32,28 @@ public class Scenario1 extends AbstractSimpleScaleUpScenario {
     }
 
     @Override
+    protected double getMaximumFailureRatio() {
+        return MAX_FAILURE_RATE;
+    }
+
+    @Override
     protected int getMaximumSimulatorInstances() {
         return MAX_SIMULATOR_INSTANCES;
+    }
+
+    @Override
+    protected Duration getImproveDuration() {
+        return Duration.ofMinutes(1);
+    }
+
+    @Override
+    protected Duration getWaitForStableDuration() {
+        return Duration.ofMinutes(5);
+    }
+
+    @Override
+    protected Duration getSampleDuration() {
+        return Duration.ofMinutes(2);
     }
 
 }

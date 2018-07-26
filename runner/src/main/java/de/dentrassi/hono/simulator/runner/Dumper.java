@@ -25,7 +25,7 @@ public class Dumper implements AutoCloseable {
     private final Metrics metrics;
 
     public Dumper(final String type) {
-        this.metrics = new Metrics("telemetry");
+        this.metrics = new Metrics("telemetry", Duration.ofMinutes(1));
     }
 
     public void run() {

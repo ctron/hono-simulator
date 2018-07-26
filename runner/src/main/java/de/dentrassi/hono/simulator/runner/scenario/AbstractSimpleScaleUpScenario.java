@@ -16,6 +16,7 @@ import static de.dentrassi.hono.simulator.runner.OpenShift.createSimulationClien
 import static java.nio.file.StandardOpenOption.APPEND;
 import static java.nio.file.StandardOpenOption.CREATE;
 import static java.nio.file.StandardOpenOption.WRITE;
+import static java.time.Instant.now;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -52,42 +53,60 @@ public abstract class AbstractSimpleScaleUpScenario {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractSimpleScaleUpScenario.class);
 
-    private final Duration sampleDuration = Duration.ofMinutes(3);
+    private final static DateTimeFormatter TIMESTAMP_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmm");
 
     private final Metrics metrics;
 
-    private final static String TIMESTAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd_HHmm")
-            .format(Instant.now().atOffset(ZoneOffset.UTC));
-
-    private final Path logFile = Paths
-            .get("logs/scenario1_" + TIMESTAMP + ".log");
+    private final Path logFile;
 
     private final IClient sim;
 
     private final IClient iot;
 
-    protected abstract double getMaximumFailureRatio();
-
     protected abstract int getMaximumAdapterInstances();
 
     protected abstract int getMaximumSimulatorInstances();
 
-    public AbstractSimpleScaleUpScenario(final Metrics metrics) {
+    public AbstractSimpleScaleUpScenario(final Metrics metrics, final String name) {
 
         this.metrics = metrics;
+        this.logFile = Paths
+                .get("logs/" + name + "_" + TIMESTAMP_FORMAT.format(now().atOffset(ZoneOffset.UTC)) + ".log");
 
         this.sim = createSimulationClient();
         this.iot = createIoTClient();
 
-        final ScaleUp scaleUpSimulator = new ScaleUp(metrics.getEventWriter(), this.sim, "simulator",
+    }
+
+    protected Duration getSampleDuration() {
+        return Duration.ofMinutes(3);
+    }
+
+    protected Duration getWaitForStableDuration() {
+        return Duration.ofMinutes(15);
+    }
+
+    protected Duration getImproveDuration() {
+        return Duration.ofMinutes(5);
+    }
+
+    protected double getMaximumFailureRatio() {
+        return 0.02;
+    }
+
+    public void run() {
+
+        final ScaleUp scaleUpSimulator = new ScaleUp(this.metrics.getEventWriter(), this.sim, "simulator",
                 DEPLOYMENT_CONFIG, DC_SIMULATOR_HTTP, getMaximumSimulatorInstances());
-        final ScaleUp scaleUpAdapter = new ScaleUp(metrics.getEventWriter(), this.iot, "hono",
+        final ScaleUp scaleUpAdapter = new ScaleUp(this.metrics.getEventWriter(), this.iot, "hono",
                 DEPLOYMENT_CONFIG, DC_HONO_HTTP_ADAPTER, getMaximumAdapterInstances());
 
-        final WaitForStable verify = new WaitForStable(metrics, getMaximumFailureRatio(),
-                this.sampleDuration, Duration.ofMinutes(15), Duration.ofMinutes(5), this::logState);
+        final WaitForStable verify = new WaitForStable(
+                this.metrics, getMaximumFailureRatio(),
+                getSampleDuration(), getWaitForStableDuration(), getImproveDuration(),
+                this::logState);
 
-        final Duration waitAfterScaleup = this.sampleDuration.plus(Duration.ofMinutes(1));
+        final Duration waitAfterScaleup = getSampleDuration().plus(this.metrics.getSingleQueryOffset());
 
         scaleUpAdapter
                 .then(new Wait(waitAfterScaleup))
@@ -102,12 +121,10 @@ public abstract class AbstractSimpleScaleUpScenario {
         verify
                 .onFailure(scaleUpAdapter);
 
-        final Wait initState = new Wait(this.sampleDuration.multipliedBy(2));
+        final Wait initState = new Wait(getSampleDuration().multipliedBy(2).plus(this.metrics.getSingleQueryOffset()));
         initState
                 .then(new SimpleState(this::logState))
                 .then(scaleUpSimulator);
-
-        // start
 
         logger.info("Reset system...");
 
@@ -181,9 +198,9 @@ public abstract class AbstractSimpleScaleUpScenario {
     }
 
     protected void logState() {
-        final double failureRate = this.metrics.getFailureRate(this.sampleDuration);
-        final long received = this.metrics.getReceivedMessages(this.sampleDuration);
-        final long rtt = this.metrics.getRtt(this.sampleDuration);
+        final double failureRate = this.metrics.getFailureRate(getSampleDuration());
+        final long received = this.metrics.getReceivedMessages(getSampleDuration());
+        final long rtt = this.metrics.getRtt(getSampleDuration());
 
         logState(failureRate, received, rtt);
     }

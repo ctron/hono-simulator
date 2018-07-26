@@ -27,10 +27,12 @@ import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 public class Metrics implements AutoCloseable {
 
     private final String type;
+    private final Duration singleQueryOffset;
     private final InfluxDbMetrics metrics;
 
-    public Metrics(final String type) {
+    public Metrics(final String type, final Duration singleQueryOffset) {
         this.type = type;
+        this.singleQueryOffset = singleQueryOffset;
         this.metrics = createInstance();
     }
 
@@ -43,12 +45,15 @@ public class Metrics implements AutoCloseable {
         this.metrics.close();
     }
 
+    public Duration getSingleQueryOffset() {
+        return this.singleQueryOffset;
+    }
+
     private Stream<Number> singleQuery(final Duration duration, final String query) {
 
-        final Duration offset = Duration.ofMinutes(1);
         final String timeRange = toTime(duration);
-        final String timeOffset = toTime(offset);
-        final String timeStart = toTime(duration.plus(offset));
+        final String timeOffset = toTime(this.singleQueryOffset);
+        final String timeStart = toTime(duration.plus(this.singleQueryOffset));
 
         final String fullQuery = String.format(
                 "SELECT %1$s WHERE (type = '%2$s') AND (time >= now() - %4$s) AND (time < now() - %3$s)  GROUP BY time(%5$s, %6$s)",
