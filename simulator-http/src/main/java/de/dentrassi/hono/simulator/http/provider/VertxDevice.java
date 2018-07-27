@@ -73,15 +73,15 @@ public class VertxDevice extends Device {
         final boolean usingNative = vertx.isNativeTransportEnabled();
         System.out.println("VERTX: Running with native: " + usingNative);
 
-        createWebClient(eventWriter);
+        createWebClient(eventWriter, 1);
 
         Environment.consumeAs("VERTX_RECREATE_CLIENT", Long::parseLong, period -> {
-            vertx.setPeriodic(period, t -> createWebClient(eventWriter));
+            vertx.setPeriodic(period, t -> createWebClient(eventWriter, period));
         });
 
     }
 
-    private static void createWebClient(final EventWriter eventWriter) {
+    private static void createWebClient(final EventWriter eventWriter, final long period) {
         logger.info("Creating new web client");
 
         eventWriter.writeEvent("Web Client", "Creating new vertx web clients");
@@ -94,7 +94,7 @@ public class VertxDevice extends Device {
 
         final WebClient oldClient = client.getAndSet(WebClient.create(vertx, clientOptions));
         if (oldClient != null) {
-            oldClient.close();
+            vertx.setTimer(period, t -> oldClient.close());
         }
     }
 
