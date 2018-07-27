@@ -11,6 +11,7 @@
 package de.dentrassi.hono.simulator.http;
 
 import static de.dentrassi.hono.demo.common.Register.shouldRegister;
+import static de.dentrassi.hono.demo.common.Select.oneOf;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -27,32 +28,12 @@ public abstract class Device {
 
     private static final Logger logger = LoggerFactory.getLogger(Device.class);
 
-    protected static final String HONO_HTTP_PROTO = System.getenv("HONO_HTTP_PROTO");
-    protected static final String HONO_HTTP_HOST = System.getenv("HONO_HTTP_HOST");
-    protected static final String HONO_HTTP_PORT = System.getenv("HONO_HTTP_PORT");
-    protected static final HttpUrl HONO_HTTP_URL;
-
     private static final String METHOD = System.getenv().get("HTTP_METHOD");
 
     protected static final boolean AUTO_REGISTER = Boolean
             .parseBoolean(System.getenv().getOrDefault("AUTO_REGISTER", "true"));
 
     protected static final boolean NOAUTH = Boolean.parseBoolean(System.getenv().getOrDefault("HTTP_NOAUTH", "false"));
-
-    static {
-        String url = System.getenv("HONO_HTTP_URL");
-
-        if (url == null && HONO_HTTP_HOST != null && HONO_HTTP_PORT != null) {
-            final String proto = HONO_HTTP_PROTO != null ? HONO_HTTP_PROTO : "http";
-            url = String.format("%s://%s:%s", proto, HONO_HTTP_HOST, HONO_HTTP_PORT);
-        }
-
-        if (url != null) {
-            HONO_HTTP_URL = HttpUrl.parse(url);
-        } else {
-            HONO_HTTP_URL = null;
-        }
-    }
 
     protected final String auth;
 
@@ -72,6 +53,8 @@ public abstract class Device {
 
     protected final String method;
 
+    protected final boolean enabled;
+
     public Device(final String user, final String deviceId, final String tenant, final String password,
             final Register register, final Statistics telemetryStatistics, final Statistics eventStatistics) {
 
@@ -86,6 +69,28 @@ public abstract class Device {
         this.auth = Credentials.basic(user + "@" + tenant, password);
 
         this.method = METHOD != null ? METHOD : "PUT";
+
+        this.enabled = getHonoHttpUrl() != null;
+    }
+
+    protected HttpUrl getHonoHttpUrl() {
+
+        String url = oneOf(System.getenv("HONO_HTTP_URL"));
+
+        final String envProto = System.getenv("HONO_HTTP_PROTO");
+        final String envHost = oneOf(System.getenv("HONO_HTTP_HOST"));
+        final String envPort = System.getenv("HONO_HTTP_PORT");
+
+        if (url == null && envHost != null && envPort != null) {
+            final String proto = envProto != null ? envProto : "http";
+            url = String.format("%s://%s:%s", proto, envHost, envPort);
+        }
+
+        if (url != null) {
+            return HttpUrl.parse(url);
+        } else {
+            return null;
+        }
     }
 
     protected HttpUrl createUrl(final String type) {
@@ -97,19 +102,19 @@ public abstract class Device {
     }
 
     protected HttpUrl createPostUrl(final String type) {
-        if (HONO_HTTP_URL == null) {
+        if (!this.enabled) {
             return null;
         }
 
-        return HONO_HTTP_URL.resolve("/" + type);
+        return getHonoHttpUrl().resolve("/" + type);
     }
 
     protected HttpUrl createPutUrl(final String type) {
-        if (HONO_HTTP_URL == null) {
+        if (!this.enabled) {
             return null;
         }
 
-        return HONO_HTTP_URL.newBuilder()
+        return getHonoHttpUrl().newBuilder()
                 .addPathSegment(type)
                 .addPathSegment(this.tenant)
                 .addPathSegment(this.deviceId)
@@ -137,7 +142,7 @@ public abstract class Device {
     protected CompletableFuture<?> tick(final Statistics statistics,
             final ThrowingSupplier<CompletableFuture<?>, Exception> runnable) {
 
-        if (HONO_HTTP_URL == null) {
+        if (!this.enabled) {
             return CompletableFuture.completedFuture(null);
         }
 

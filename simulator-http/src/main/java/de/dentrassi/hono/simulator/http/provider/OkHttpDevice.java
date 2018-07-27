@@ -61,7 +61,7 @@ public abstract class OkHttpDevice extends Device {
 
     private Request createRequest(final HttpUrl url, final BiConsumer<Request.Builder, RequestBody> method) {
 
-        if (HONO_HTTP_URL == null) {
+        if (!this.enabled) {
             return null;
         }
 
