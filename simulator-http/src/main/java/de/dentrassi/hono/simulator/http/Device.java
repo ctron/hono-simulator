@@ -173,6 +173,7 @@ public abstract class Device {
 
     protected void handleException(final Throwable e, final Statistics statistics) {
         statistics.failed();
+        statistics.error(0);
     }
 
     protected void handleFailure(final int code, final Statistics statistics) {
