@@ -58,6 +58,10 @@ import io.glutamate.util.concurrent.Await;
  */
 public abstract class AbstractSimpleScaleUpScenario {
 
+    private static final String PROJECT_HONO = "hono";
+
+    private static final String PROJECT_SIMULATOR = "simulator";
+
     private static final String DC_HONO_HTTP_ADAPTER = "hono-adapter-http-vertx";
 
     private static final String DC_SIMULATOR_HTTP = "simulator-http";
@@ -111,9 +115,9 @@ public abstract class AbstractSimpleScaleUpScenario {
     }
 
     public void run() {
-        final ScaleUp scaleUpSimulator = new ScaleUp(this.metrics.getEventWriter(), this.sim, "simulator",
+        final ScaleUp scaleUpSimulator = new ScaleUp(this.metrics.getEventWriter(), this.sim, PROJECT_SIMULATOR,
                 DEPLOYMENT_CONFIG, DC_SIMULATOR_HTTP, getMaximumSimulatorInstances());
-        final ScaleUp scaleUpAdapter = new ScaleUp(this.metrics.getEventWriter(), this.iot, "hono",
+        final ScaleUp scaleUpAdapter = new ScaleUp(this.metrics.getEventWriter(), this.iot, PROJECT_HONO,
                 DEPLOYMENT_CONFIG, DC_HONO_HTTP_ADAPTER, getMaximumAdapterInstances());
 
         final WaitForStable verify = new WaitForStable(
@@ -144,14 +148,14 @@ public abstract class AbstractSimpleScaleUpScenario {
         logger.info("Reset system...");
 
         final DeploymentConfig dcSimulator = this.sim.getResourceFactory().stub(DEPLOYMENT_CONFIG, DC_SIMULATOR_HTTP,
-                "simulator");
+                PROJECT_SIMULATOR);
         dcSimulator.refresh();
         dcSimulator.setReplicas(1);
         this.sim.update(dcSimulator);
         dcSimulator.refresh();
 
         final DeploymentConfig dcAdapter = this.iot.getResourceFactory().stub(DEPLOYMENT_CONFIG,
-                DC_HONO_HTTP_ADAPTER, "hono");
+                DC_HONO_HTTP_ADAPTER, PROJECT_HONO);
         dcAdapter.refresh();
         dcAdapter.setReplicas(1);
         this.iot.update(dcAdapter);
@@ -199,13 +203,13 @@ public abstract class AbstractSimpleScaleUpScenario {
 
     protected void logState(final double failureRate, final long received, final long rtt) {
         final DeploymentConfig dcSim = (DeploymentConfig) this.sim.getResourceFactory().stub(DEPLOYMENT_CONFIG,
-                DC_SIMULATOR_HTTP, "simulator");
+                DC_SIMULATOR_HTTP, PROJECT_SIMULATOR);
         dcSim.refresh();
 
         final int simulators = dcSim.getCurrentReplicaCount();
 
         final DeploymentConfig dcAdapter = (DeploymentConfig) this.iot.getResourceFactory().stub(DEPLOYMENT_CONFIG,
-                DC_HONO_HTTP_ADAPTER, "hono");
+                DC_HONO_HTTP_ADAPTER, PROJECT_HONO);
         dcAdapter.refresh();
         final int adapters = dcAdapter.getCurrentReplicaCount();
 
