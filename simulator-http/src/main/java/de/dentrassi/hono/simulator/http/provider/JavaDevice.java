@@ -13,16 +13,22 @@ package de.dentrassi.hono.simulator.http.provider;
 import static de.dentrassi.hono.demo.common.CompletableFutures.runAsync;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+
+import org.apache.commons.io.IOUtils;
 
 import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
+import de.dentrassi.hono.simulator.http.Response;
 import de.dentrassi.hono.simulator.http.Statistics;
 import de.dentrassi.hono.simulator.http.ThrowingFunction;
 import okhttp3.OkHttpClient;
@@ -58,7 +64,7 @@ public class JavaDevice extends Device {
 
         final HttpURLConnection con = (HttpURLConnection) url.openConnection();
         try {
-            con.setDoInput(false);
+            con.setDoInput(true);
             con.setDoOutput(true);
             con.setUseCaches(false);
 
@@ -78,7 +84,24 @@ public class JavaDevice extends Device {
             }
 
             final int code = con.getResponseCode();
-            handleResponse(code, statistics);
+
+            byte[] buffer;
+            try (InputStream in = con.getInputStream()) {
+                buffer = IOUtils.toByteArray(in);
+            }
+
+            handleResponse(new Response() {
+
+                @Override
+                public int code() {
+                    return code;
+                }
+
+                @Override
+                public String bodyAsString(final Charset charset) {
+                    return charset.decode(ByteBuffer.wrap(buffer)).toString();
+                }
+            }, statistics);
 
         } finally {
             con.disconnect();

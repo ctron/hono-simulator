@@ -13,10 +13,13 @@ package de.dentrassi.hono.simulator.http.provider;
 import static de.dentrassi.hono.demo.common.CompletableFutures.runAsync;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
@@ -30,6 +33,7 @@ import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
+import de.dentrassi.hono.simulator.http.Response;
 import de.dentrassi.hono.simulator.http.Statistics;
 import de.dentrassi.hono.simulator.http.ThrowingFunction;
 import okhttp3.OkHttpClient;
@@ -97,7 +101,22 @@ public class HCDevice extends Device {
             final HttpEntity entity = response.getEntity();
 
             final int code = response.getStatusLine().getStatusCode();
-            handleResponse(code, statistics);
+            handleResponse(new Response() {
+
+                @Override
+                public int code() {
+                    return code;
+                }
+
+                @Override
+                public String bodyAsString(final Charset charset) {
+                    try (InputStream in = response.getEntity().getContent()) {
+                        return IOUtils.toString(in, charset);
+                    } catch (final IOException e) {
+                        return null;
+                    }
+                }
+            }, statistics);
 
             if (entity != null) {
                 entity.getContent().close();

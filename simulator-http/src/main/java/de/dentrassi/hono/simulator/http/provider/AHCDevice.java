@@ -17,6 +17,7 @@ import static org.asynchttpclient.Dsl.post;
 import static org.asynchttpclient.Dsl.put;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
@@ -28,6 +29,7 @@ import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
+import de.dentrassi.hono.simulator.http.Response;
 import de.dentrassi.hono.simulator.http.Statistics;
 import de.dentrassi.hono.simulator.http.ThrowingFunction;
 import io.netty.buffer.PooledByteBufAllocator;
@@ -111,7 +113,18 @@ public class AHCDevice extends Device {
                     if (ex != null) {
                         handleException(ex, statistics);
                     } else {
-                        handleResponse(response.getStatusCode(), statistics);
+                        handleResponse(new Response() {
+
+                            @Override
+                            public int code() {
+                                return response.getStatusCode();
+                            }
+
+                            @Override
+                            public String bodyAsString(final Charset charset) {
+                                return response.getResponseBody(charset);
+                            }
+                        }, statistics);
                     }
                 });
     }

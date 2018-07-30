@@ -11,6 +11,9 @@
 
 package de.dentrassi.hono.simulator.http.provider;
 
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.BiConsumer;
@@ -28,6 +31,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Request.Builder;
 import okhttp3.RequestBody;
+import okhttp3.Response;
 
 public abstract class OkHttpDevice extends Device {
 
@@ -98,4 +102,31 @@ public abstract class OkHttpDevice extends Device {
     protected abstract CompletableFuture<?> doPublish(final Supplier<Call> call, final Statistics statistics)
             throws Exception;
 
+    protected de.dentrassi.hono.simulator.http.Response toResponse(final Response response) {
+        return new de.dentrassi.hono.simulator.http.Response() {
+
+            @Override
+            public int code() {
+                return response.code();
+            }
+
+            @Override
+            public String bodyAsString() {
+                try {
+                    return response.body().string();
+                } catch (final IOException e) {
+                    return null;
+                }
+            }
+
+            @Override
+            public String bodyAsString(final Charset charset) {
+                try {
+                    return charset.decode(ByteBuffer.wrap(response.body().bytes())).toString();
+                } catch (final IOException e) {
+                    return null;
+                }
+            }
+        };
+    }
 }

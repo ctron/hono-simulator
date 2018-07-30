@@ -13,6 +13,7 @@ package de.dentrassi.hono.simulator.http.provider;
 import static de.dentrassi.hono.demo.common.Environment.consumeAs;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
@@ -26,6 +27,7 @@ import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
+import de.dentrassi.hono.simulator.http.Response;
 import de.dentrassi.hono.simulator.http.Statistics;
 import de.dentrassi.hono.simulator.http.ThrowingFunction;
 import io.vertx.core.Vertx;
@@ -159,7 +161,26 @@ public class VertxDevice extends Device {
                     final HttpResponse<Buffer> response = ar.result();
 
                     if (ar.succeeded()) {
-                        handleResponse(response.statusCode(), statistics);
+                        handleResponse(new Response() {
+
+                            @Override
+                            public int code() {
+                                return response.statusCode();
+                            }
+
+                            @Override
+                            public String bodyAsString() {
+                                // vertx decodes bodies always using UTF-8
+                                // but we do save a lookup of the encoder that way.
+                                return response.bodyAsString();
+                            }
+
+                            @Override
+                            public String bodyAsString(final Charset charset) {
+                                return response.bodyAsString(charset.name());
+                            }
+
+                        }, statistics);
                         result.complete(null);
                     } else {
                         handleException(ar.cause(), statistics);

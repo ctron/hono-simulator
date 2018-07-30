@@ -181,12 +181,16 @@ public abstract class Device {
         statistics.error(0);
     }
 
-    protected void handleFailure(final int code, final Statistics statistics) {
+    protected void handleFailure(final Response response, final Statistics statistics) {
         statistics.failed();
-        statistics.error(code);
+        statistics.error(response.code());
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("handleFailure - code: {}, body: {}", response.code(), response.bodyAsString());
+        }
 
         try {
-            switch (code) {
+            switch (response.code()) {
             case 401:
             case 403: //$FALL-THROUGH$
                 if (AUTO_REGISTER && shouldRegister()) {
@@ -199,9 +203,10 @@ public abstract class Device {
         }
     }
 
-    protected void handleResponse(final int code, final Statistics statistics) {
+    protected void handleResponse(final Response response, final Statistics statistics) {
+        final int code = response.code();
         if (code < 200 || code > 299) {
-            handleFailure(code, statistics);
+            handleFailure(response, statistics);
         } else {
             handleSuccess(statistics);
         }

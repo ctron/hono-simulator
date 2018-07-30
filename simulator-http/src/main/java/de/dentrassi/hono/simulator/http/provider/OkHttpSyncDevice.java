@@ -63,7 +63,7 @@ public class OkHttpSyncDevice extends OkHttpDevice {
                 handleSuccess(statistics);
             } else {
                 logger.trace("Result code: {}", response.code());
-                handleFailure(response.code(), statistics);
+                handleFailure(toResponse(response), statistics);
             }
         }
     }

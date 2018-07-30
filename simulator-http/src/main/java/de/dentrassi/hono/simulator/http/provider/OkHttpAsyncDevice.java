@@ -62,7 +62,7 @@ public class OkHttpAsyncDevice extends OkHttpDevice {
                         handleSuccess(statistics);
                     } else {
                         logger.trace("Result code: {}", response.code());
-                        handleFailure(response.code(), statistics);
+                        handleFailure(toResponse(response), statistics);
                     }
                     response.close();
                 } finally {
@@ -83,4 +83,5 @@ public class OkHttpAsyncDevice extends OkHttpDevice {
 
         return result;
     }
+
 }
