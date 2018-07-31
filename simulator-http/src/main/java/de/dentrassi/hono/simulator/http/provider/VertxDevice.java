@@ -161,26 +161,7 @@ public class VertxDevice extends Device {
                     final HttpResponse<Buffer> response = ar.result();
 
                     if (ar.succeeded()) {
-                        handleResponse(new Response() {
-
-                            @Override
-                            public int code() {
-                                return response.statusCode();
-                            }
-
-                            @Override
-                            public String bodyAsString() {
-                                // vertx decodes bodies always using UTF-8
-                                // but we do save a lookup of the encoder that way.
-                                return response.bodyAsString();
-                            }
-
-                            @Override
-                            public String bodyAsString(final Charset charset) {
-                                return response.bodyAsString(charset.name());
-                            }
-
-                        }, statistics);
+                        handleResponse(convertRequest(response), statistics);
                         result.complete(null);
                     } else {
                         handleException(ar.cause(), statistics);
@@ -190,6 +171,29 @@ public class VertxDevice extends Device {
                 });
 
         return result;
+    }
+
+    private static Response convertRequest(final HttpResponse<Buffer> response) {
+        return new Response() {
+
+            @Override
+            public int code() {
+                return response.statusCode();
+            }
+
+            @Override
+            public String bodyAsString() {
+                // vertx decodes bodies always using UTF-8
+                // but we do save a lookup of the encoder that way.
+                return response.bodyAsString();
+            }
+
+            @Override
+            public String bodyAsString(final Charset charset) {
+                return response.bodyAsString(charset.name());
+            }
+
+        };
     }
 
     @Override
