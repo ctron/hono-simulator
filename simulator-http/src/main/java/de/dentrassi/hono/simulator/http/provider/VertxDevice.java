@@ -11,6 +11,7 @@
 package de.dentrassi.hono.simulator.http.provider;
 
 import static de.dentrassi.hono.demo.common.Environment.consumeAs;
+import static de.dentrassi.hono.demo.common.Environment.getAs;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -96,6 +97,9 @@ public class VertxDevice extends Device {
         consumeAs("VERTX_KEEP_ALIVE", Boolean::parseBoolean, clientOptions::setKeepAlive);
         consumeAs("VERTX_MAX_POOL_SIZE", Integer::parseInt, clientOptions::setMaxPoolSize);
         consumeAs("VERTX_POOLED_BUFFERS", Boolean::parseBoolean, clientOptions::setUsePooledBuffers);
+
+        clientOptions.setConnectTimeout(getAs("VERTX_CONNECT_TIMEOUT", 5_000, Integer::parseInt));
+        clientOptions.setIdleTimeout(getAs("VERTX_IDLE_TIMEOUT", 5_000, Integer::parseInt));
 
         final WebClient oldClient = client.getAndSet(WebClient.create(vertx, clientOptions));
         if (oldClient != null) {
