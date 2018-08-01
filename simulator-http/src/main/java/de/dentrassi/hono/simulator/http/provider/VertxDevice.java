@@ -68,6 +68,9 @@ public class VertxDevice extends Device {
 
         final AddressResolverOptions addressResolverOptions = new AddressResolverOptions();
         consumeAs("VERTX_DNS_MAX_TTL", Integer::parseInt, addressResolverOptions::setCacheMaxTimeToLive);
+        addressResolverOptions
+                .setCacheNegativeTimeToLive(
+                        Environment.getAs("VERTX_DNS_CACHE_NEGATIVE_TTL_SECONDS", 1, Integer::parseInt));
         options.setAddressResolverOptions(addressResolverOptions);
 
         vertx = Vertx.factory.vertx(options);
