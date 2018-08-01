@@ -158,7 +158,7 @@ public abstract class Device {
             return CompletableFuture.completedFuture(null);
         }
 
-        return future.handle((r, ex) -> {
+        return future.whenComplete((r, ex) -> {
 
             if (ex != null) {
                 statistics.failed();
@@ -167,8 +167,6 @@ public abstract class Device {
 
             final Duration dur = Duration.between(start, Instant.now());
             statistics.duration(dur);
-
-            return null;
         });
     }
 
