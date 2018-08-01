@@ -54,9 +54,8 @@ public class TickExecutor {
             return;
         }
 
-        future.handle((r, ex) -> {
+        future.whenComplete((r, ex) -> {
             finishRun(runnable, period, now);
-            return null;
         });
     }
 
