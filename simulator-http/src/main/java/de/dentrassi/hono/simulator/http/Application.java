@@ -53,7 +53,7 @@ public class Application {
     private static final int TELEMETRY_MS = Integer.parseInt(System.getenv().getOrDefault("TELEMETRY_MS", "0"));
     private static final int EVENT_MS = Integer.parseInt(System.getenv().getOrDefault("EVENT_MS", "0"));
 
-    private static final String DEVICE_PROVIDER = System.getenv().getOrDefault("DEVICE_PROVIDER", "OKHTTP");
+    private static final String DEVICE_PROVIDER = System.getenv().getOrDefault("DEVICE_PROVIDER", "VERTX");
 
     public static void main(final String[] args) throws Exception {
 
