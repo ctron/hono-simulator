@@ -15,6 +15,7 @@ import static de.dentrassi.hono.demo.common.Environment.getAs;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
@@ -90,7 +91,9 @@ public class VertxDevice extends Device {
     private static void createWebClient(final EventWriter eventWriter, final long period) {
         logger.info("Creating new web client");
 
-        eventWriter.writeEvent("Web Client", "Creating new vertx web clients");
+        if (eventWriter != null) {
+            eventWriter.writeEvent("Web Client", "Creating new vertx web clients");
+        }
 
         final WebClientOptions clientOptions = new WebClientOptions();
 
@@ -125,8 +128,8 @@ public class VertxDevice extends Device {
         this.payload = payload;
         this.payloadBuffer = Buffer.factory.buffer(this.payload.getBytes());
 
-        this.telemetryUrl = createUrl("telemetry").toString();
-        this.eventUrl = createUrl("event").toString();
+        this.telemetryUrl = Objects.toString(createUrl("telemetry"), null);
+        this.eventUrl = Objects.toString(createUrl("event"), null);
     }
 
     private HttpRequest<Buffer> createRequest(final String url) {

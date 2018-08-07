@@ -33,7 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.DeadlockDetector;
-import de.dentrassi.hono.demo.common.Environment;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
@@ -50,8 +49,8 @@ public class Application {
     private static final Statistics TELEMETRY_STATS = new Statistics();
     private static final Statistics EVENT_STATS = new Statistics();
 
-    private static final int TELEMETRY_MS = Integer.parseInt(System.getenv().getOrDefault("TELEMETRY_MS", "0"));
-    private static final int EVENT_MS = Integer.parseInt(System.getenv().getOrDefault("EVENT_MS", "0"));
+    private static final int TELEMETRY_MS = getAs("TELEMETRY_MS", 0, Integer::parseInt);
+    private static final int EVENT_MS = getAs("EVENT_MS", 0, Integer::parseInt);
 
     private static final String DEVICE_PROVIDER = System.getenv().getOrDefault("DEVICE_PROVIDER", "VERTX");
 
@@ -82,7 +81,7 @@ public class Application {
 
         // "minimalistic" setting
 
-        if (Environment.getAs("OKHTTP_MINIMALISTIC_CONNECTION_POOL", false, Boolean::parseBoolean)) {
+        if (getAs("OKHTTP_MINIMALISTIC_CONNECTION_POOL", false, Boolean::parseBoolean)) {
             System.out.println("Using minimalistic OkHttp connection pool");
             httpBuilder.connectionPool(new ConnectionPool(0, 1, TimeUnit.MILLISECONDS));
         }
