@@ -18,6 +18,7 @@ import static java.util.Collections.singletonMap;
 
 import java.time.Instant;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -54,14 +55,28 @@ public class InfluxDbMetrics implements EventWriter, AutoCloseable {
             return url;
         }
 
-        return String.format("http://%s:%s", getenv("INFLUXDB_SERVICE_HOST"), getenv("INFLUXDB_SERVICE_PORT_API"));
+        final String host = getenv("INFLUXDB_SERVICE_HOST");
+        final String port = getenv("INFLUXDB_SERVICE_PORT_API");
+        if (host != null && port != null) {
+            return String.format("http://%s:%s", host, getenv("INFLUXDB_SERVICE_PORT_API"));
+        } else {
+            return null;
+        }
+
     }
 
-    public static InfluxDbMetrics createInstance() {
-        return new InfluxDbMetrics(makeInfluxDbUrl(),
+    public static Optional<InfluxDbMetrics> createInstance() {
+
+        final String uri = makeInfluxDbUrl();
+
+        if (uri == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new InfluxDbMetrics(uri,
                 get("INFLUXDB_USER").orElse("user"),
                 get("INFLUXDB_PASSWORD").orElse("password"),
-                get("INFLUXDB_NAME").orElse("metrics"));
+                get("INFLUXDB_NAME").orElse("metrics")));
     }
 
     private final InfluxDB db;

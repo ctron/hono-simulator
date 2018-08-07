@@ -20,7 +20,6 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Random;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
@@ -56,11 +55,6 @@ public class Application {
 
     private static final String DEVICE_PROVIDER = System.getenv().getOrDefault("DEVICE_PROVIDER", "OKHTTP");
 
-    private static final boolean METRICS_ENABLED = Optional
-            .ofNullable(System.getenv("ENABLE_METRICS"))
-            .map(Boolean::parseBoolean)
-            .orElse(true);
-
     public static void main(final String[] args) throws Exception {
 
         try (DeadlockDetector detector = new DeadlockDetector()) {
@@ -74,11 +68,9 @@ public class Application {
 
         final DeviceProvider provider = locateProvider();
 
-        if (METRICS_ENABLED) {
+        metrics = InfluxDbMetrics.createInstance().orElse(null);
+        if (metrics != null) {
             logger.info("Recording metrics");
-            metrics = InfluxDbMetrics.createInstance();
-        } else {
-            metrics = null;
         }
 
         final int numberOfDevices = getAs("NUM_DEVICES", 10, Integer::parseInt);

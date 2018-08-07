@@ -33,7 +33,7 @@ public class Metrics implements AutoCloseable {
     public Metrics(final String type, final Duration singleQueryOffset) {
         this.type = type;
         this.singleQueryOffset = singleQueryOffset;
-        this.metrics = createInstance();
+        this.metrics = createInstance().orElseThrow(() -> new IllegalStateException("Metrics configuration missing"));
     }
 
     public EventWriter getEventWriter() {
