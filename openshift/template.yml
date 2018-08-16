@@ -1,0 +1,655 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: hono-simulator
+  annotations:
+    description: "Eclipse Hono™ Simulator"
+    iconClass: "pficon pficon-virtual-machine"
+    tags: "iot"
+
+# Parameters
+
+parameters:
+- name:         IOT_CLUSTER_DNS_BASENAME
+  describe:        The IoT cluster DNS base name. This can also be the base name
+                   of the current cluster if simulator and Hono/EnMasse are
+                   running on the same cluster. For Minishift this could be
+                   something like "192.168.1.1.nip.io"
+  required:        true
+- name:         GIT_REPOSITORY
+  description:     URL of the Git repository
+  value:           https://github.com/redhat-iot/hono-simulator
+  required:        true
+- name:         GIT_BRANCH
+  description:     GitHub branch
+  value:           master
+  required:        true
+- name:         INFLUXDB_ADMIN_USER
+  description:     InfluxDB admin user
+  value:           root
+  required:        true
+- name:         INFLUXDB_ADMIN_PASSWORD
+  description:     InfluxDB admin password
+  generate:        expression 
+  from:            "[a-zA-Z0-9]{12}"
+  required:        true
+- name:         INFLUXDB_DB
+  description:     Name of the default InfluxDB instance
+  value:           metrics
+  required:        true
+- name:         INFLUXDB_USER
+  description:     Name of the default InfluxDB user
+  value:           user
+  required:        true
+- name:         INFLUXDB_USER_PASSWORD
+  description:     Password of the default InfluxDB user
+  value:           password
+  required:        true
+- name:         HONO_MQTT_ROUTE_NAME
+  description:     The hostname/IP of the Hono MQTT Adapter
+  value:           hono-adapter-mqtt-vertx-sec-hono
+  required:        true
+- name:         HONO_MQTT_PORT
+  description:     The port of the Hono MQTT Adapter
+  value:           "443"
+  required:        true
+- name:         HONO_REGISTRATION_ROUTE_NAME
+  value:           hono-service-device-registry-http-hono
+  required:        true
+- name:         HONO_REGISTRATION_PORT
+  value:           "80"
+- name:         HONO_HTTP_ROUTE_NAME
+  description:     The URL to the HTTP adapter endpoint
+  value:           hono-adapter-http-vertx-hono
+  required:        true
+- name:         HONO_HTTP_SCHEMA
+  value:           "http://"
+  description:     The HTTP schema used to access the HTTP protocol adapter
+  required:        true
+- name:         MESSAGING_ROUTE_NAME
+  value:           messaging-enmasse
+  required:        true
+- name:         MESSAGING_PORT
+  value:           "443"
+  required:        true
+
+objects:
+
+# Secrets
+
+- kind: Secret
+  apiVersion: v1
+  metadata:
+    name: simulator-secrets
+  type: Opaque 
+  stringData:
+    influxdb-admin-password: ${INFLUXDB_ADMIN_PASSWORD}
+    influxdb-user-password: ${INFLUXDB_USER_PASSWORD}
+
+# Image streams
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: centos
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - name: "7"
+      from:
+        kind: DockerImage
+        name: docker.io/centos:7
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Source
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: simulator-base
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: simulator-parent
+
+# Builds
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: simulator-base-build
+  spec:
+    triggers: 
+      - type: ImageChange
+      - type: ConfigChange
+    source: 
+      type: Git
+      git:
+        uri: ${GIT_REPOSITORY}
+        ref: ${GIT_BRANCH}
+      contextDir: containers/base
+    strategy: 
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: centos:7
+    output:
+      to:
+        kind: ImageStreamTag
+        name: simulator-base:latest
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: simulator-parent-build
+  spec:
+    triggers: 
+      - type: ImageChange
+      - type: ConfigChange
+    source: 
+      type: Git
+      git:
+        uri: ${GIT_REPOSITORY}
+        ref: ${GIT_BRANCH}
+    strategy: 
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: simulator-base:latest
+    output:
+      to:
+        kind: ImageStreamTag
+        name: simulator-parent:latest
+
+## Consumer
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: simulator-consumer-influxdb
+    labels:
+      app: simulator
+  spec:
+    replicas: 1
+    selector:
+      app: simulator
+      deploymentconfig: simulator-consumer-influxdb
+    strategy:
+      type: Rolling
+    triggers:
+      - type: ConfigChange 
+      - type: ImageChange 
+        imageChangeParams:
+          automatic: true
+          containerNames:
+            - consumer-influxdb
+          from:
+            kind: ImageStreamTag
+            name: simulator-parent:latest
+    template:
+      metadata:
+        labels:
+          app: simulator
+          deploymentconfig: simulator-consumer-influxdb
+      spec:
+        containers:
+        - image: simulator-parent
+          imagePullPolicy: Always
+          name: consumer-influxdb
+          command:
+            - "java"
+            - "-Xmx1024m"
+            - "-Dvertx.cacheDirBase=/tmp"
+            - "-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory"
+            - "-jar"
+            - "/build/consumer-influxdb/target/simulator-consumer-influxdb-app.jar"
+          env:
+            - name: HONO_TRUSTED_CERTS
+              value: /etc/config/server-cert.pem
+            - name: HONO_USER
+              value: consumer@HONO
+            - name: HONO_PASSWORD
+              value: verysecret
+            - name: HONO_TENANT
+              value: DEFAULT_TENANT
+            - name: HONO_INITIAL_CREDITS
+              value: "100"
+
+            - name: INFLUXDB_USER
+              value: ${INFLUXDB_USER}
+            - name: INFLUXDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: simulator-secrets
+                  key: influxdb-user-password
+            - name: INFLUXDB_NAME
+              value: ${INFLUXDB_DB}
+            - name: INFLUXDB_METRICS_BATCH_SIZE
+              value: "100"
+            - name: INFLUXDB_METRICS_FLUSH_DURATION_SECONDS
+              value: "10"
+
+            - name: MESSAGING_SERVICE_HOST
+              value: "${MESSAGING_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
+            - name: MESSAGING_SERVICE_PORT_AMQP
+              value: "${MESSAGING_PORT}"
+            - name: ENABLE_PERSISTENCE
+              value: "false"
+
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/config
+        volumes:
+          - name: config-volume
+            configMap:
+              name: simulator-config
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: simulator-http
+    labels:
+      app: simulator
+  spec:
+    replicas: 0
+    selector:
+      app: simulator
+      deploymentconfig: simulator-http
+    strategy:
+      type: Recreate
+    triggers:
+      - type: ConfigChange 
+      - type: ImageChange 
+        imageChangeParams:
+          automatic: true
+          containerNames:
+            - simulator-http
+          from:
+            kind: ImageStreamTag
+            name: simulator-parent:latest
+    template:
+      metadata:
+        labels:
+          app: simulator
+          deploymentconfig: simulator-http
+      spec:
+        containers:
+        - image: simulator-parent
+          imagePullPolicy: Always
+          name: simulator-http
+          command:
+            - "java"
+            - "-Xmx1024m"
+            - "-Dvertx.cacheDirBase=/tmp"
+            - "-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory"
+            - "-jar"
+            - "/build/simulator-http/target/simulator-http-app.jar"
+          env:
+            - name: HONO_SERVICE_DEVICE_REGISTRY_SERVICE_HOST
+              value: "${HONO_REGISTRATION_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
+            - name: HONO_SERVICE_DEVICE_REGISTRY_SERVICE_PORT_HTTP
+              value: "${HONO_REGISTRATION_PORT}"
+            - name: HONO_HTTP_URL
+              value: "${HONO_HTTP_SCHEMA}${HONO_HTTP_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
+            - name: NUM_DEVICES
+              value: "2000"
+            - name: NUM_THREADS
+              value: "10"
+            - name: TELEMETRY_MS
+              value: "1000"
+            - name: EVENT_MS
+              value: "0"
+
+            - name: INFLUXDB_USER
+              value: ${INFLUXDB_USER}
+            - name: INFLUXDB_METRICS_FLUSH_DURATION_SECONDS
+              value: "100"
+            - name: INFLUXDB_METRICS_BATCH_SIZE
+              value: "10"
+            - name: INFLUXDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: simulator-secrets
+                  key: influxdb-user-password
+            - name: INFLUXDB_NAME
+              value: ${INFLUXDB_DB}
+
+            - name: DEVICE_PROVIDER
+              value: VERTX
+            - name: VERTX_POOLED_BUFFERS
+              value: "true"
+            - name: VERTX_MAX_POOL_SIZE
+              value: "500"
+            - name: VERTX_RECREATE_CLIENT
+              value: '120000'
+            - name: VERTX_KEEP_ALIVE
+              value: 'true'
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: simulator-mqtt
+    labels:
+      app: simulator
+  spec:
+    replicas: 0
+    selector:
+      app: simulator
+      deploymentconfig: simulator-mqtt
+    strategy:
+      type: Recreate
+    triggers:
+      - type: ConfigChange 
+      - type: ImageChange 
+        imageChangeParams:
+          automatic: true
+          containerNames:
+            - simulator-mqtt
+          from:
+            kind: ImageStreamTag
+            name: simulator-parent:latest
+    template:
+      metadata:
+        labels:
+          app: simulator
+          deploymentconfig: simulator-mqtt
+      spec:
+        containers:
+        - image: simulator-mqtt
+          imagePullPolicy: Always
+          name: simulator-mqtt
+          command:
+            - "java"
+            - "-Xmx1024m"
+            - "-Dvertx.cacheDirBase=/tmp"
+            - "-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory"
+            - "-jar"
+            - "/build/simulator-mqtt/target/simulator-mqtt-app.jar"
+          env:
+            - name: HONO_SERVICE_DEVICE_REGISTRY_SERVICE_HOST
+              value: "${HONO_REGISTRATION_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
+            - name: HONO_SERVICE_DEVICE_REGISTRY_SERVICE_PORT_HTTP
+              value: "${HONO_REGISTRATION_PORT}"
+            - name: HONO_MQTT_HOST
+              value: "${HONO_MQTT_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
+            - name: HONO_MQTT_PORT
+              value: "${HONO_MQTT_PORT}"
+            - name: HONO_MQTT_SSL
+              value: "true"
+            - name: HONO_MQTT_TRUST_ALL
+              value: "true"
+            - name: NUM_DEVICES
+              value: "10"
+            - name: NUM_THREADS
+              value: "10"
+            - name: INFLUXDB_USER
+              value: ${INFLUXDB_USER}
+            - name: INFLUXDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: simulator-secrets
+                  key: influxdb-user-password
+            - name: INFLUXDB_NAME
+              value: ${INFLUXDB_DB}
+
+
+## Influx DB
+
+- kind: ConfigMap
+  apiVersion: v1
+  metadata:
+    name: influxdb-config
+  data:
+    influxdb.conf: |+
+      reporting-disabled = false
+      bind-address = ":8088"
+      
+      [meta]
+        dir = "/var/lib/influxdb/meta"
+        retention-autocreate = true
+        logging-enabled = true
+      
+      [data]
+        dir = "/var/lib/influxdb/data"
+        wal-dir = "/var/lib/influxdb/wal"
+        query-log-enabled = true
+        cache-max-memory-size = 1073741824
+        cache-snapshot-memory-size = 26214400
+        cache-snapshot-write-cold-duration = "10m0s"
+        compact-full-write-cold-duration = "4h0m0s"
+        max-series-per-database = 1000000
+        max-values-per-tag = 100000
+        trace-logging-enabled = false
+      
+      [coordinator]
+        write-timeout = "10s"
+        max-concurrent-queries = 0
+        query-timeout = "0s"
+        log-queries-after = "0s"
+        max-select-point = 0
+        max-select-series = 0
+        max-select-buckets = 0
+      
+      [retention]
+        enabled = true
+        check-interval = "30m0s"
+      
+      [shard-precreation]
+        enabled = true
+        check-interval = "10m0s"
+        advance-period = "30m0s"
+      
+      [admin]
+        enabled = true
+        bind-address = ":8083"
+        https-enabled = false
+        https-certificate = "/etc/ssl/influxdb.pem"
+      
+      [monitor]
+        store-enabled = true
+        store-database = "_internal"
+        store-interval = "10s"
+      
+      [subscriber]
+        enabled = true
+        http-timeout = "30s"
+        insecure-skip-verify = false
+        ca-certs = ""
+        write-concurrency = 40
+        write-buffer-size = 1000
+      
+      [http]
+        enabled = true
+        bind-address = ":8086"
+        auth-enabled = false
+        log-enabled = true
+        write-tracing = false
+        pprof-enabled = true
+        https-enabled = false
+        https-certificate = "/etc/ssl/influxdb.pem"
+        https-private-key = ""
+        max-row-limit = 0
+        max-connection-limit = 0
+        shared-secret = ""
+        realm = "InfluxDB"
+        unix-socket-enabled = false
+        bind-socket = "/var/run/influxdb.sock"
+      
+      [[graphite]]
+        enabled = false
+        bind-address = ":2003"
+        database = "graphite"
+        retention-policy = ""
+        protocol = "tcp"
+        batch-size = 5000
+        batch-pending = 10
+        batch-timeout = "1s"
+        consistency-level = "one"
+        separator = "."
+        udp-read-buffer = 0
+        templates = [
+        ]
+      
+      [[collectd]]
+        enabled = false
+        bind-address = ":25826"
+        database = "collectd"
+        retention-policy = ""
+        batch-size = 5000
+        batch-pending = 10
+        batch-timeout = "10s"
+        read-buffer = 0
+        typesdb = "/usr/share/collectd/types.db"
+        security-level = "none"
+        auth-file = "/etc/collectd/auth_file"
+      
+      [[opentsdb]]
+        enabled = false
+        bind-address = ":4242"
+        database = "opentsdb"
+        retention-policy = ""
+        consistency-level = "one"
+        tls-enabled = false
+        certificate = "/etc/ssl/influxdb.pem"
+        batch-size = 1000
+        batch-pending = 5
+        batch-timeout = "1s"
+        log-point-errors = true
+      
+      [[udp]]
+        enabled = false
+        bind-address = ":8089"
+        database = "udp"
+        retention-policy = ""
+        batch-size = 5000
+        batch-pending = 10
+        read-buffer = 0
+        batch-timeout = "1s"
+        precision = ""
+      
+      [continuous_queries]
+        log-enabled = true
+        enabled = true
+        run-interval = "1s"
+
+
+- kind: PersistentVolumeClaim
+  apiVersion: v1
+  metadata:
+    name: influxdb-storage-claim
+  spec:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 40Gi
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: influxdb
+    labels:
+      app: influxdb
+  spec:
+    replicas: 1
+    selector:
+      app: influxdb
+      deploymentconfig: influxdb
+    strategy:
+      type: Recreate
+    triggers:
+      - type: ConfigChange
+    template:
+      metadata:
+        labels:
+          app: influxdb
+          deploymentconfig: influxdb
+      spec:
+        containers:
+        - name: influxdb
+          image: influxdb:1.3
+          ports:
+          - containerPort: 8086
+            name: api
+            protocol: TCP
+          args:
+          - "-config"
+          - "/etc/config/influxdb.conf"
+          env:
+          - name: INFLUXDB_DB
+            value: ${INFLUXDB_DB}
+          - name: INFLUXDB_ADMIN_USER
+            value: ${INFLUXDB_ADMIN_USER}
+          - name: INFLUXDB_ADMIN_PASSWORD
+            value: ${INFLUXDB_ADMIN_PASSWORD}
+          - name: INFLUXDB_USER
+            value: ${INFLUXDB_USER}
+          - name: INFLUXDB_USER_PASSWORD
+            value: ${INFLUXDB_USER_PASSWORD}
+          volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config
+          - name: influxdb-storage
+            mountPath: /var/lib/influxdb
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ping
+              port: 8086
+              scheme: HTTP
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 1
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ping
+              port: 8086
+              scheme: HTTP
+            initialDelaySeconds: 20
+            periodSeconds: 9
+            successThreshold: 1
+            timeoutSeconds: 1
+        volumes:
+        - name: config-volume
+          configMap:
+            name: influxdb-config
+        - name: influxdb-storage
+          persistentVolumeClaim:
+            claimName: influxdb-storage-claim
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: influxdb
+    labels:
+      app: influxdb
+  spec:
+    ports:
+    - name: api
+      port: 8086
+      protocol: TCP
+      targetPort: 8086
+    selector:
+      app: influxdb
+      deploymentconfig: influxdb
+
+- kind: Route
+  apiVersion: v1
+  metadata:
+    name: influxdb
+    labels:
+      app: influxdb
+  spec:
+    to:
+      kind: Service
+      name: influxdb
+    port:
+      targetPort: api
+
