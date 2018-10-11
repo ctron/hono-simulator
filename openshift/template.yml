@@ -45,6 +45,9 @@ parameters:
   description:     Password of the default InfluxDB user
   value:           password
   required:        true
+- name:         INFLUXDB_STORAGE_SIZE
+  required:        true
+  value:           20Gi
 - name:         HONO_MQTT_ROUTE_NAME
   description:     The hostname/IP of the Hono MQTT Adapter
   value:           hono-adapter-mqtt-vertx-sec-hono
@@ -547,7 +550,7 @@ objects:
       - ReadWriteOnce
     resources:
       requests:
-        storage: 40Gi
+        storage: ${INFLUXDB_STORAGE_SIZE}
 
 - kind: DeploymentConfig
   apiVersion: v1
