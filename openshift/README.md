@@ -8,7 +8,7 @@ Extract the certificates from the EnMasse instance:
 
 Create a new project for the simulator:
 
-    oc new-project simulator --display-name "Hono Simulator"
+    oc new-project hono-simulator --display-name "Hono Simulator"
 
 And then create a config map with the certificates:
 
