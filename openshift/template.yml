@@ -57,7 +57,7 @@ parameters:
   value:           "443"
   required:        true
 - name:         HONO_REGISTRATION_ROUTE_NAME
-  value:           hono-service-device-registry-http-hono
+  value:           hono-service-device-registry-https-hono
   required:        true
 - name:         HONO_REGISTRATION_SCHEMA
   value:           "https://"
