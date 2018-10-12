@@ -64,7 +64,7 @@ parameters:
   required:        true
 - name:         HONO_HTTP_ROUTE_NAME
   description:     The URL to the HTTP adapter endpoint
-  value:           hono-adapter-https-vertx-hono
+  value:           hono-adapter-http-vertx-sec-hono
   required:        true
 - name:         HONO_HTTP_SCHEMA
   value:           "https://"
@@ -216,7 +216,7 @@ objects:
             - name: HONO_TRUSTED_CERTS
               value: /etc/config/server-cert.pem
             - name: HONO_USER
-              value: consumer@HONO
+              value: consumer
             - name: HONO_PASSWORD
               value: verysecret
             - name: HONO_TENANT
