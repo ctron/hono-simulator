@@ -32,14 +32,23 @@ public class Register {
     private static final String REGISTRATION_HOST = getenv("HONO_SERVICE_DEVICE_REGISTRY_SERVICE_HOST");
     private static final String REGISTRATION_PORT = getenv("HONO_SERVICE_DEVICE_REGISTRY_SERVICE_PORT_HTTP");
 
+    private static boolean nullOrEmpty(final String string) {
+        if (string == null) {
+            return true;
+        }
+        return string.isEmpty();
+    }
+
     private static final HttpUrl REGISTRATION_URL = REGISTRATION_HOST == null ? null
             : HttpUrl
-                    .parse(String.format("http://%s:%s", REGISTRATION_HOST, REGISTRATION_PORT))
+                    .parse(String.format("http://%s%s%s", REGISTRATION_HOST, nullOrEmpty(REGISTRATION_PORT) ? "" : ":",
+                            REGISTRATION_PORT))
                     .resolve("/registration/");
 
     private static final HttpUrl CREDENTIALS_URL = REGISTRATION_HOST == null ? null
             : HttpUrl
-                    .parse(String.format("http://%s:%s", REGISTRATION_HOST, REGISTRATION_PORT))
+                    .parse(String.format("http://%s%s%s", REGISTRATION_HOST, nullOrEmpty(REGISTRATION_PORT) ? "" : ":",
+                            REGISTRATION_PORT))
                     .resolve("/credentials/");
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
