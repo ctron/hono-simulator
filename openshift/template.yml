@@ -66,7 +66,7 @@ parameters:
   value:           hono-adapter-http-vertx-hono
   required:        true
 - name:         HONO_HTTP_SCHEMA
-  value:           "http://"
+  value:           "https://"
   description:     The HTTP schema used to access the HTTP protocol adapter
   required:        true
 - name:         MESSAGING_ROUTE_NAME
