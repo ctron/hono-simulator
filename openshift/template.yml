@@ -59,8 +59,9 @@ parameters:
 - name:         HONO_REGISTRATION_ROUTE_NAME
   value:           hono-service-device-registry-http-hono
   required:        true
-- name:         HONO_REGISTRATION_PORT
-  value:           "80"
+- name:         HONO_REGISTRATION_SCHEMA
+  value:           "https://"
+  required:        true
 - name:         HONO_HTTP_ROUTE_NAME
   description:     The URL to the HTTP adapter endpoint
   value:           hono-adapter-http-vertx-hono
@@ -293,10 +294,8 @@ objects:
             - "-jar"
             - "/build/simulator-http/target/simulator-http-app.jar"
           env:
-            - name: HONO_SERVICE_DEVICE_REGISTRY_SERVICE_HOST
-              value: "${HONO_REGISTRATION_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
-            - name: HONO_SERVICE_DEVICE_REGISTRY_SERVICE_PORT_HTTP
-              value: "${HONO_REGISTRATION_PORT}"
+            - name: DEVICE_REGISTRY_URL
+              value: "${HONO_REGISTRATION_SCHEMA}${HONO_REGISTRATION_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
             - name: HONO_HTTP_URL
               value: "${HONO_HTTP_SCHEMA}${HONO_HTTP_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
             - name: NUM_DEVICES
@@ -374,10 +373,8 @@ objects:
             - "-jar"
             - "/build/simulator-mqtt/target/simulator-mqtt-app.jar"
           env:
-            - name: HONO_SERVICE_DEVICE_REGISTRY_SERVICE_HOST
-              value: "${HONO_REGISTRATION_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
-            - name: HONO_SERVICE_DEVICE_REGISTRY_SERVICE_PORT_HTTP
-              value: "${HONO_REGISTRATION_PORT}"
+            - name: DEVICE_REGISTRY_URL
+              value: "${HONO_REGISTRATION_SCHEMA}${HONO_REGISTRATION_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
             - name: HONO_MQTT_HOST
               value: "${HONO_MQTT_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
             - name: HONO_MQTT_PORT
