@@ -29,27 +29,8 @@ import okhttp3.Response;
 
 public class Register {
 
-    private static final String REGISTRATION_HOST = getenv("HONO_SERVICE_DEVICE_REGISTRY_SERVICE_HOST");
-    private static final String REGISTRATION_PORT = getenv("HONO_SERVICE_DEVICE_REGISTRY_SERVICE_PORT_HTTP");
-
-    private static boolean nullOrEmpty(final String string) {
-        if (string == null) {
-            return true;
-        }
-        return string.isEmpty();
-    }
-
-    private static final HttpUrl REGISTRATION_URL = REGISTRATION_HOST == null ? null
-            : HttpUrl
-                    .parse(String.format("http://%s%s%s", REGISTRATION_HOST, nullOrEmpty(REGISTRATION_PORT) ? "" : ":",
-                            REGISTRATION_PORT))
-                    .resolve("/registration/");
-
-    private static final HttpUrl CREDENTIALS_URL = REGISTRATION_HOST == null ? null
-            : HttpUrl
-                    .parse(String.format("http://%s%s%s", REGISTRATION_HOST, nullOrEmpty(REGISTRATION_PORT) ? "" : ":",
-                            REGISTRATION_PORT))
-                    .resolve("/credentials/");
+    private static final HttpUrl REGISTRATION_URL;
+    private static final HttpUrl CREDENTIALS_URL;
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
@@ -58,7 +39,30 @@ public class Register {
     }
 
     static {
+
+        String devRegUrl = getenv("DEVICE_REGISTRY_URL");
+        if (devRegUrl == null) {
+            final String regHost = getenv("HONO_SERVICE_DEVICE_REGISTRY_SERVICE_HOST");
+            final String regPort = getenv("HONO_SERVICE_DEVICE_REGISTRY_SERVICE_PORT_HTTP");
+            if (regHost != null) {
+                devRegUrl = "http://" + regHost;
+                if (regPort != null && !regPort.isEmpty()) {
+                    devRegUrl += ":" + regPort;
+                }
+            }
+        }
+
+        if (devRegUrl != null && !devRegUrl.isEmpty()) {
+            final HttpUrl devReg = HttpUrl.parse(devRegUrl);
+            REGISTRATION_URL = devReg.resolve("/registration/");
+            CREDENTIALS_URL = devReg.resolve("/credentials/");
+        } else {
+            REGISTRATION_URL = null;
+            CREDENTIALS_URL = null;
+        }
+
         System.out.format("Registration: %s%n", REGISTRATION_URL);
+        System.out.format("Credentials: %s%n", CREDENTIALS_URL);
     }
 
     private static final Logger logger = LoggerFactory.getLogger(Register.class);
