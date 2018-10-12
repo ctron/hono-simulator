@@ -64,7 +64,7 @@ parameters:
   required:        true
 - name:         HONO_HTTP_ROUTE_NAME
   description:     The URL to the HTTP adapter endpoint
-  value:           hono-adapter-http-vertx-hono
+  value:           hono-adapter-https-vertx-hono
   required:        true
 - name:         HONO_HTTP_SCHEMA
   value:           "https://"
