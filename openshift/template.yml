@@ -211,7 +211,7 @@ objects:
             - "-Dvertx.cacheDirBase=/tmp"
             - "-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory"
             - "-jar"
-            - "/build/consumer-influxdb/target/simulator-consumer-influxdb-app.jar"
+            - "/build/simulator-consumer-influxdb/target/simulator-consumer-influxdb-app.jar"
           env:
             - name: HONO_TRUSTED_CERTS
               value: /etc/config/server-cert.pem
