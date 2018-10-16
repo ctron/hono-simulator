@@ -1,10 +1,25 @@
 
 # Deployment on OpenShift
 
-Extract the certificates from the EnMasse instance:
+## Extracting certificates
+
+Create a new directory for storing the certificates:
 
     mkdir certs
+
+Extract the certificates from a pre-0.23 EnMasse instance:
+
     oc extract -n enmasse secret/external-certs-messaging --to=certs
+
+Extract the certificates from a 0.23+ EnMasse instance:
+
+    oc extract -n enmasse secret/external-certs-messaging-<project-name>-<address-space-name> --to=certs
+
+For the default Hono OpenShift S2I deployment this would be:
+
+    oc extract -n enmasse secret/external-certs-messaging-hono-default --to=certs
+
+## Deploying the simulator
 
 Create a new project for the simulator:
 

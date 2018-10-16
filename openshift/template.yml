@@ -70,11 +70,11 @@ parameters:
   value:           "https://"
   description:     The HTTP schema used to access the HTTP protocol adapter
   required:        true
-- name:         MESSAGING_ROUTE_NAME
-  value:           messaging-enmasse
+- name:         MESSAGING_HOST
+  value:           messaging-hono-default.enmasse.svc
   required:        true
 - name:         MESSAGING_PORT
-  value:           "443"
+  value:           "5671"
   required:        true
 
 objects:
@@ -239,7 +239,7 @@ objects:
               value: "10"
 
             - name: MESSAGING_SERVICE_HOST
-              value: "${MESSAGING_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
+              value: "${MESSAGING_HOST}"
             - name: MESSAGING_SERVICE_PORT_AMQP
               value: "${MESSAGING_PORT}"
             - name: ENABLE_PERSISTENCE
