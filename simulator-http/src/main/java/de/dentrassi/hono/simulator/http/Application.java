@@ -10,9 +10,9 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http;
 
-import static io.glutamate.lang.Environment.getAs;
 import static de.dentrassi.hono.demo.common.Tags.EVENT;
 import static de.dentrassi.hono.demo.common.Tags.TELEMETRY;
+import static io.glutamate.lang.Environment.getAs;
 import static java.lang.System.getenv;
 
 import java.math.BigDecimal;
@@ -29,6 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,7 @@ import de.dentrassi.hono.demo.common.DeadlockDetector;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.demo.common.Tls;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 
@@ -94,6 +96,12 @@ public class Application {
             System.out.println("Setting connection pool to: " + Integer.parseInt(poolSize));
             final ConnectionPool connectionPool = new ConnectionPool(Integer.parseInt(poolSize), 1, TimeUnit.MINUTES);
             httpBuilder.connectionPool(connectionPool);
+        }
+
+        // disable TLS validation
+
+        if (Tls.insecure()) {
+            httpBuilder.hostnameVerifier(NoopHostnameVerifier.INSTANCE);
         }
 
         // create new client

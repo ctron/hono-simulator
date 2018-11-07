@@ -27,6 +27,7 @@ import io.glutamate.lang.Environment;
 import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.demo.common.Tls;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Response;
 import de.dentrassi.hono.simulator.http.Statistics;
@@ -102,6 +103,11 @@ public class VertxDevice extends Device {
 
         clientOptions.setConnectTimeout(getAs("VERTX_CONNECT_TIMEOUT", 5_000, Integer::parseInt));
         clientOptions.setIdleTimeout(getAs("VERTX_IDLE_TIMEOUT", 5_000, Integer::parseInt));
+
+        if (Tls.insecure()) {
+            clientOptions.setVerifyHost(false);
+            clientOptions.setTrustAll(true);
+        }
 
         final WebClient oldClient = client.getAndSet(WebClient.create(vertx, clientOptions));
         if (oldClient != null) {
