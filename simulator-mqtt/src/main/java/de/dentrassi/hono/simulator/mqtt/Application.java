@@ -23,11 +23,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.demo.common.Tls;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import okhttp3.OkHttpClient;
@@ -82,6 +84,9 @@ public class Application {
         final String deviceIdPrefix = System.getenv("HOSTNAME");
 
         final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
+        if ( Tls.insecure()) {
+            httpBuilder.hostnameVerifier(NoopHostnameVerifier.INSTANCE);
+        }
         final OkHttpClient http = httpBuilder.build();
 
         final Register register = new Register(http, DEFAULT_TENANT);
