@@ -10,6 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.demo.common;
 
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 
 import javax.net.ssl.HostnameVerifier;
@@ -60,7 +61,7 @@ public final class Tls {
             };
 
             final SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, new TrustManager[] { trustAllCerts }, new java.security.SecureRandom());
+            sslContext.init(null, new TrustManager[] { trustAllCerts }, new SecureRandom());
 
             final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
 
