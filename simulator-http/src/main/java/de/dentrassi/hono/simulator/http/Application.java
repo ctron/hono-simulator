@@ -10,7 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http;
 
-import static de.dentrassi.hono.demo.common.Environment.getAs;
+import static io.glutamate.lang.Environment.getAs;
 import static de.dentrassi.hono.demo.common.Tags.EVENT;
 import static de.dentrassi.hono.demo.common.Tags.TELEMETRY;
 import static java.lang.System.getenv;

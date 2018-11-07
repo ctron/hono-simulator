@@ -10,8 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http.provider;
 
-import static de.dentrassi.hono.demo.common.Environment.getAs;
-import static de.dentrassi.hono.demo.common.Environment.is;
+import static io.glutamate.lang.Environment.*;
 import static org.asynchttpclient.Dsl.asyncHttpClient;
 import static org.asynchttpclient.Dsl.post;
 import static org.asynchttpclient.Dsl.put;

@@ -10,8 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.demo.common;
 
-import static de.dentrassi.hono.demo.common.Environment.get;
-import static de.dentrassi.hono.demo.common.Environment.getAs;
+import static io.glutamate.lang.Environment.*;
 import static java.lang.System.getenv;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;

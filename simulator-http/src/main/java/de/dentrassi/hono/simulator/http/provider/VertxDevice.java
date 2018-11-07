@@ -10,8 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http.provider;
 
-import static de.dentrassi.hono.demo.common.Environment.consumeAs;
-import static de.dentrassi.hono.demo.common.Environment.getAs;
+import static io.glutamate.lang.Environment.*;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -24,7 +23,7 @@ import java.util.function.Supplier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import de.dentrassi.hono.demo.common.Environment;
+import io.glutamate.lang.Environment;
 import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;

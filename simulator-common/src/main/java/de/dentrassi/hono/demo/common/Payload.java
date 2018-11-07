@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
 
+import io.glutamate.lang.Environment;
+
 public final class Payload {
 
     private static final Payload INSTANCE;

@@ -10,7 +10,7 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.consumer;
 
-import static de.dentrassi.hono.demo.common.Environment.is;
+import static io.glutamate.lang.Environment.is;
 import static io.vertx.core.CompositeFuture.join;
 import static java.lang.System.getenv;
 import static java.util.Optional.ofNullable;
@@ -29,7 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.DeadlockDetector;
-import de.dentrassi.hono.demo.common.Environment;
+import io.glutamate.lang.Environment;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Tags;
 import io.netty.handler.ssl.OpenSsl;
