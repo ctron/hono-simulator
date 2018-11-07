@@ -13,11 +13,11 @@ Extract the certificates from a pre-0.23 EnMasse instance:
 
 Extract the certificates from a 0.23+ EnMasse instance:
 
-    oc extract -n enmasse secret/external-certs-messaging-<project-name>-<address-space-name> --to=certs
+    oc -n <project-name> get addressspace <address-space-name> -o jsonpath={.status.endpointStatuses[?(@.name==\'messaging\')].cert} | base64 -d > certs/ca.crt
 
 For the default Hono OpenShift S2I deployment this would be:
 
-    oc extract -n enmasse secret/external-certs-messaging-hono-default --to=certs
+    oc -n hono get addressspace default -o jsonpath={.status.endpointStatuses[?(@.name==\'messaging\')].cert} | base64 -d > certs/ca.crt
 
 ## Deploying the simulator
 
@@ -27,7 +27,7 @@ Create a new project for the simulator:
 
 And then create a config map with the certificates:
 
-    oc create  configmap simulator-config --from-file=server-cert.pem=certs/ca.crt
+    oc create configmap simulator-config --from-file=server-cert.pem=certs/ca.crt
 
 Then deploy the simulator template:
 
@@ -35,3 +35,11 @@ Then deploy the simulator template:
 
 **Note:** By default the simulators (HTTP and MQTT) will have zero (0) replicas.
 You will need to scale them up in order to generate some load.
+
+## Tweaking Hono default settings
+
+The default limitation on the Hono device registry may not be sufficient for
+registering a larger number of devices. You can raise the limit be executing
+the following command:
+
+    oc env -n hono dc/hono-service-device-registry HONO_REGISTRY_SVC_MAX_DEVICES_PER_TENANT=10000
