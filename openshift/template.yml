@@ -71,7 +71,7 @@ parameters:
   description:     The HTTP schema used to access the HTTP protocol adapter
   required:        true
 - name:         MESSAGING_HOST
-  value:           messaging-hono-default.enmasse.svc
+  value:           messaging-hono-default.enmasse-infra.svc
   required:        true
 - name:         MESSAGING_PORT
   value:           "5671"
