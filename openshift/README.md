@@ -46,4 +46,4 @@ The default limitation on the Hono device registry may not be sufficient for
 registering a larger number of devices. You can raise the limit be executing
 the following command:
 
-    oc env -n hono dc/hono-service-device-registry HONO_REGISTRY_SVC_MAX_DEVICES_PER_TENANT=10000
+    oc set env -n hono dc/hono-service-device-registry HONO_REGISTRY_SVC_MAX_DEVICES_PER_TENANT=10000
