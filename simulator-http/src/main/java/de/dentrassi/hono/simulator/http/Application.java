@@ -78,6 +78,7 @@ public class Application {
         final int numberOfThreads = getAs("NUM_THREADS", 10, Integer::parseInt);
 
         System.out.format("#devices: %s, #threads: %s%n", numberOfDevices, numberOfThreads);
+        System.out.format("TLS insecure: %s%n", Tls.insecure());
 
         final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
 
