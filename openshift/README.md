@@ -7,11 +7,11 @@ Create a new directory for storing the certificates:
 
     mkdir certs
 
-Extract the certificates from a pre-0.23 EnMasse instance:
+### EnMasse before 0.23
 
     oc extract -n enmasse secret/external-certs-messaging --to=certs
 
-Extract the certificates from a 0.23+ EnMasse instance:
+### EnMasse 0.23+
 
     oc -n <project-name> get addressspace <address-space-name> -o jsonpath={.status.endpointStatuses[?(@.name==\'messaging\')].cert} | base64 -d > certs/ca.crt
 
@@ -32,6 +32,10 @@ And then create a config map with the certificates:
 Then deploy the simulator template:
 
     oc process -p IOT_CLUSTER_DNS_BASENAME=<my-hono-hostname> -f template.yml | oc create -f -
+
+If you are using Minishift you can use the Minishift IP address with e.g. "nip.io":
+
+    oc process -p IOT_CLUSTER_DNS_BASENAME=$(minishift ip).nip.io -f template.yml | oc create -f -
 
 **Note:** By default the simulators (HTTP and MQTT) will have zero (0) replicas.
 You will need to scale them up in order to generate some load.
