@@ -29,7 +29,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,7 +101,7 @@ public class Application {
         // disable TLS validation
 
         if (Tls.insecure()) {
-            httpBuilder.hostnameVerifier(NoopHostnameVerifier.INSTANCE);
+            Tls.makeOkHttpInsecure(httpBuilder);
         }
 
         // create new client

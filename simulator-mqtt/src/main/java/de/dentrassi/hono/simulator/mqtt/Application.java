@@ -23,7 +23,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,7 +84,7 @@ public class Application {
 
         final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
         if ( Tls.insecure()) {
-            httpBuilder.hostnameVerifier(NoopHostnameVerifier.INSTANCE);
+            Tls.makeOkHttpInsecure(httpBuilder);
         }
         final OkHttpClient http = httpBuilder.build();
 
