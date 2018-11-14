@@ -83,7 +83,9 @@ public class VertxDevice extends Device {
         createWebClient(eventWriter, 1);
 
         Environment.consumeAs("VERTX_RECREATE_CLIENT", Long::parseLong, period -> {
-            vertx.setPeriodic(period, t -> createWebClient(eventWriter, period));
+            if (period > 0) {
+                vertx.setPeriodic(period, t -> createWebClient(eventWriter, period));
+            }
         });
 
     }
