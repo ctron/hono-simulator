@@ -11,6 +11,7 @@
 package de.dentrassi.hono.simulator.mqtt;
 
 import static de.dentrassi.hono.demo.common.Tags.TELEMETRY;
+import static io.glutamate.lang.Environment.getAs;
 import static java.lang.System.getenv;
 
 import java.time.Instant;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.demo.common.Tls;
+import io.glutamate.lang.Environment;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import okhttp3.OkHttpClient;
@@ -36,7 +38,11 @@ import okhttp3.OkHttpClient;
 public class Application {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
-    private static final String DEFAULT_TENANT = "DEFAULT_TENANT";
+
+    private static final String TENANT = Environment.get("TENANT").orElse("DEFAULT_TENANT");
+
+    private static final int TELEMETRY_MS = getAs("TELEMETRY_MS", 0, Integer::parseInt);
+    private static final int EVENT_MS = getAs("EVENT_MS", 0, Integer::parseInt);
 
     private static InfluxDbMetrics metrics;
 
@@ -88,7 +94,7 @@ public class Application {
         }
         final OkHttpClient http = httpBuilder.build();
 
-        final Register register = new Register(http, DEFAULT_TENANT);
+        final Register register = new Register(http, TENANT);
 
         final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
         statsExecutor.scheduleAtFixedRate(Application::dumpStats, 1, 1, TimeUnit.SECONDS);
@@ -114,9 +120,16 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device = new Device(vertx, username, deviceId, DEFAULT_TENANT, "hono-secret", register);
+                final Device device = new Device(vertx, username, deviceId, TENANT, "hono-secret", register);
 
-                executor.scheduleAtFixedRate(device::tick, r.nextInt(1_000), 1_000, TimeUnit.MILLISECONDS);
+                if (TELEMETRY_MS > 0) {
+                    executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS,
+                            TimeUnit.MILLISECONDS);
+                }
+                if (EVENT_MS > 0) {
+                    executor.scheduleAtFixedRate(device::tickEvent, r.nextInt(EVENT_MS), EVENT_MS,
+                            TimeUnit.MILLISECONDS);
+                }
             }
 
             Thread.sleep(Long.MAX_VALUE);

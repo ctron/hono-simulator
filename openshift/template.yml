@@ -307,6 +307,9 @@ objects:
             - name: EVENT_MS
               value: "0"
 
+            - name: TLS_INSECURE
+              value: "false"
+
             - name: INFLUXDB_USER
               value: ${INFLUXDB_USER}
             - name: INFLUXDB_METRICS_FLUSH_DURATION_SECONDS
@@ -396,6 +399,12 @@ objects:
                   key: influxdb-user-password
             - name: INFLUXDB_NAME
               value: ${INFLUXDB_DB}
+            - name: TLS_INSECURE
+              value: "false"
+            - name: TELEMETRY_MS
+              value: "1000"
+            - name: EVENT_MS
+              value: "0"
 
 
 ## Influx DB

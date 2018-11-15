@@ -34,8 +34,6 @@ public class Device {
 
     private final Vertx vertx;
 
-    private final String topic;
-
     private final Register register;
 
     private final String deviceId;
@@ -66,7 +64,6 @@ public class Device {
 
         this.vertx = vertx;
         this.register = register;
-        this.topic = "telemetry";
 
         this.deviceId = deviceId;
         this.username = username;
@@ -125,13 +122,20 @@ public class Device {
         return delay;
     }
 
-    public void tick() {
+    public void tickTelemetry() {
         this.vertx.runOnContext(v -> {
-            doPublish();
+            doPublish("telementry", MqttQoS.AT_MOST_ONCE);
         });
     }
 
-    private void doPublish() {
+    public void tickEvent() {
+        this.vertx.runOnContext(v -> {
+            doPublish("event", MqttQoS.AT_LEAST_ONCE);
+        });
+    }
+
+
+    private void doPublish(final String topic, final MqttQoS qos) {
 
         TICKED.incrementAndGet();
 
@@ -141,7 +145,7 @@ public class Device {
 
         SENT.incrementAndGet();
 
-        this.client.publish(this.topic, this.payload, MqttQoS.AT_MOST_ONCE, false, false);
+        this.client.publish(topic, this.payload, qos, false, false);
     }
 
     private void connectionEstablished() {
