@@ -10,11 +10,13 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.mqtt;
 
+import static de.dentrassi.hono.demo.common.Tags.EVENT;
 import static de.dentrassi.hono.demo.common.Tags.TELEMETRY;
 import static io.glutamate.lang.Environment.getAs;
 import static java.lang.System.getenv;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -22,6 +24,7 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import org.slf4j.Logger;
@@ -43,6 +46,10 @@ public class Application {
 
     private static final int TELEMETRY_MS = getAs("TELEMETRY_MS", 0, Integer::parseInt);
     private static final int EVENT_MS = getAs("EVENT_MS", 0, Integer::parseInt);
+
+    static final Statistics TELEMETRY_STATS = new Statistics();
+    static final Statistics EVENT_STATS = new Statistics();
+    static final AtomicLong CONNECTED = new AtomicLong();
 
     private static InfluxDbMetrics metrics;
 
@@ -141,22 +148,29 @@ public class Application {
 
     private static void dumpStats() {
         try {
-            final long sent = Device.SENT.getAndSet(0);
-            final long connected = Device.CONNECTED.get();
+            final long sentTelemetry = TELEMETRY_STATS.collectSent();
+            final long sentEvent = EVENT_STATS.collectSent();
+            final long connected = CONNECTED.get();
 
             final Instant now = Instant.now();
 
-            if (metrics != null) {
-                final Map<String, Number> values = new HashMap<>(4);
-                values.put("sent", sent);
-                values.put("connected", sent);
-                metrics.updateStats(now, "mqtt-publish", values, TELEMETRY);
-
-            }
-
-            System.out.format("Connected: %8s, Sent: %8s", connected, sent);
+            System.out.format("%s: Connected: %8s, Sent/T: %8s, Sent/E: %8s", connected, sentTelemetry, sentEvent);
             System.out.println();
             System.out.flush();
+
+            if (metrics != null) {
+                final Map<String, Number> values = new HashMap<>(4);
+                values.put("sent", sentTelemetry);
+                metrics.updateStats(now, "mqtt-publish", values, TELEMETRY);
+
+                values.put("sent", sentEvent);
+                metrics.updateStats(now, "mqtt-publish", values, EVENT);
+
+                values.clear();
+                values.put("connected", connected);
+                metrics.updateStats(now, "mqtt-device", values, Collections.emptyMap());
+            }
+
         } catch (final Exception e) {
             logger.error("Failed to dump statistics", e);
         }
