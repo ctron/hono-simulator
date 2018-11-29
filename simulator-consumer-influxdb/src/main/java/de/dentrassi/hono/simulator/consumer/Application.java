@@ -32,6 +32,7 @@ import de.dentrassi.hono.demo.common.DeadlockDetector;
 import io.glutamate.lang.Environment;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Tags;
+import de.dentrassi.hono.demo.common.Tenant;
 import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -75,7 +76,7 @@ public class Application {
         try (final DeadlockDetector detector = new DeadlockDetector()) {
 
             final Application app = new Application(
-                    getenv("HONO_TENANT"),
+                    Tenant.TENANT,
                     getenv("MESSAGING_SERVICE_HOST"), // HONO_DISPATCH_ROUTER_EXT_SERVICE_HOST
                     Environment.getAs("MESSAGING_SERVICE_PORT_AMQP", 5671, Integer::parseInt), // HONO_DISPATCH_ROUTER_EXT_SERVICE_PORT
                     getenv("HONO_USER"),

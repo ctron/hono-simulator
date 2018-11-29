@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017 Red Hat Inc and others.
+ * Copyright (c) 2017, 2018 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -32,8 +32,8 @@ import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.demo.common.Tenant;
 import de.dentrassi.hono.demo.common.Tls;
-import io.glutamate.lang.Environment;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import okhttp3.OkHttpClient;
@@ -41,8 +41,6 @@ import okhttp3.OkHttpClient;
 public class Application {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
-
-    private static final String TENANT = Environment.get("TENANT").orElse("DEFAULT_TENANT");
 
     private static final int TELEMETRY_MS = getAs("TELEMETRY_MS", 0, Integer::parseInt);
     private static final int EVENT_MS = getAs("EVENT_MS", 0, Integer::parseInt);
@@ -101,7 +99,7 @@ public class Application {
         }
         final OkHttpClient http = httpBuilder.build();
 
-        final Register register = new Register(http, TENANT);
+        final Register register = new Register(http, Tenant.TENANT);
 
         final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
         statsExecutor.scheduleAtFixedRate(Application::dumpStats, 1, 1, TimeUnit.SECONDS);
@@ -127,7 +125,7 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device = new Device(vertx, username, deviceId, TENANT, "hono-secret", register);
+                final Device device = new Device(vertx, username, deviceId, Tenant.TENANT, "hono-secret", register);
 
                 if (TELEMETRY_MS > 0) {
                     executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS,

@@ -31,6 +31,7 @@ public class InfluxDbConsumer {
 
     private final int batchSize = Integer.parseInt(System.getenv().getOrDefault("INFLUXDB_BATCH_SIZE", "20"));
 
+    @SuppressWarnings("deprecation")
     public InfluxDbConsumer(final String uri, final String username, final String password,
             final String databaseName) {
 

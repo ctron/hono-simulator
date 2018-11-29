@@ -48,6 +48,10 @@ parameters:
 - name:         INFLUXDB_STORAGE_SIZE
   required:        true
   value:           20Gi
+- name:         HONO_TENANT
+  description:     The Hono tenant to use
+  value:           DEFAULT_TENANT
+  required:        true
 - name:         HONO_MQTT_ROUTE_NAME
   description:     The hostname/IP of the Hono MQTT Adapter
   value:           hono-adapter-mqtt-vertx-sec-hono
@@ -220,7 +224,7 @@ objects:
             - name: HONO_PASSWORD
               value: verysecret
             - name: HONO_TENANT
-              value: DEFAULT_TENANT
+              value: ${HONO_TENANT}
             - name: HONO_INITIAL_CREDITS
               value: "100"
 
@@ -298,6 +302,9 @@ objects:
               value: "${HONO_REGISTRATION_SCHEMA}${HONO_REGISTRATION_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
             - name: HONO_HTTP_URL
               value: "${HONO_HTTP_SCHEMA}${HONO_HTTP_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
+            - name: HONO_TENANT
+              value: ${HONO_TENANT}
+
             - name: NUM_DEVICES
               value: "2000"
             - name: NUM_THREADS
@@ -378,6 +385,9 @@ objects:
           env:
             - name: DEVICE_REGISTRY_URL
               value: "${HONO_REGISTRATION_SCHEMA}${HONO_REGISTRATION_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
+            - name: HONO_TENANT
+              value: ${HONO_TENANT}
+
             - name: HONO_MQTT_HOST
               value: "${HONO_MQTT_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
             - name: HONO_MQTT_PORT

@@ -36,6 +36,7 @@ import de.dentrassi.hono.demo.common.DeadlockDetector;
 import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.demo.common.Tenant;
 import de.dentrassi.hono.demo.common.Tls;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
@@ -43,7 +44,6 @@ import okhttp3.OkHttpClient;
 public class Application {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
-    private static final String DEFAULT_TENANT = "DEFAULT_TENANT";
 
     private static InfluxDbMetrics metrics;
 
@@ -114,7 +114,7 @@ public class Application {
 
         final String deviceIdPrefix = System.getenv("HOSTNAME");
 
-        final Register register = new Register(http, DEFAULT_TENANT);
+        final Register register = new Register(http, Tenant.TENANT);
 
         final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
         statsExecutor.scheduleAtFixedRate(Application::dumpStats, 1, 1, TimeUnit.SECONDS);
@@ -132,7 +132,7 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device = provider.createDevice(executor, username, deviceId, DEFAULT_TENANT,
+                final Device device = provider.createDevice(executor, username, deviceId, Tenant.TENANT,
                         "hono-secret", http, register, Payload.payload(), TELEMETRY_STATS, EVENT_STATS, metrics);
 
                 if (TELEMETRY_MS > 0) {
