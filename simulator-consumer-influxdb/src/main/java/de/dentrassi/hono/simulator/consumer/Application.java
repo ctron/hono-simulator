@@ -128,6 +128,7 @@ public class Application {
         }
 
         this.tenant = tenant;
+        System.out.format("Hono tenant: %s%n", this.tenant);
 
         final VertxOptions options = new VertxOptions();
 
