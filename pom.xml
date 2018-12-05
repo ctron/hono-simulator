@@ -17,11 +17,12 @@
         <vertx.version>3.5.4</vertx.version>
         <netty.version>4.1.27.Final</netty.version>
         <netty-tcnative.version>2.0.10.Final</netty-tcnative.version>
+        <micrometer.version>1.1.1</micrometer.version>
     </properties>
 
     <modules>
         <module>simulator-common</module>
-        <module>simulator-consumer-influxdb</module>
+        <module>simulator-consumer</module>
         <module>simulator-http</module>
         <module>simulator-mqtt</module>
     </modules>
@@ -103,7 +104,19 @@
 
             <dependency>
                 <groupId>io.vertx</groupId>
+                <artifactId>vertx-web</artifactId>
+                <version>${vertx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.vertx</groupId>
                 <artifactId>vertx-mqtt</artifactId>
+                <version>${vertx.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.vertx</groupId>
+                <artifactId>vertx-micrometer-metrics</artifactId>
                 <version>${vertx.version}</version>
             </dependency>
 
@@ -120,6 +133,18 @@
                 <version>${netty.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-core</artifactId>
+                <version>${micrometer.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.micrometer</groupId>
+                <artifactId>micrometer-registry-prometheus</artifactId>
+                <version>${micrometer.version}</version>
             </dependency>
 
         </dependencies>

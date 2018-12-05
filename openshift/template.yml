@@ -94,6 +94,84 @@ objects:
     influxdb-admin-password: ${INFLUXDB_ADMIN_PASSWORD}
     influxdb-user-password: ${INFLUXDB_USER_PASSWORD}
 
+# OLM subscriptions
+
+- kind: Subscription
+  apiVersion: operators.coreos.com/v1alpha1
+  metadata:
+    name: prometheus
+    labels:
+      app: hono-metrics
+  spec:
+    channel: preview
+    name: prometheus
+    source: rh-operators
+
+# Prometheus instance
+
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: prometheus
+
+- kind: Role
+  apiVersion: rbac.authorization.k8s.io/v1
+  metadata:
+    name: prometheus
+  rules:
+  - apiGroups: [""]
+    resources:
+    - services
+    - endpoints
+    - pods
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+    - configmaps
+    verbs: ["get"]
+
+- kind: RoleBinding
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  metadata:
+    name: prometheus
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: prometheus
+  subjects:
+  - kind: ServiceAccount
+    name: prometheus
+    namespace: hono-simulator
+
+- kind: Prometheus
+  apiVersion: monitoring.coreos.com/v1
+  metadata:
+    name: prometheus
+  spec:
+    serviceAccountName: prometheus
+    serviceMonitorSelector:
+      matchLabels:
+        metrics: simulator
+    resources:
+      requests:
+        memory: 400Mi
+    securityContext: {}
+
+- kind: ServiceMonitor
+  apiVersion: monitoring.coreos.com/v1
+  metadata:
+    name: hono-simulator
+    labels:
+      metrics: simulator
+  spec:
+    selector:
+      matchLabels:
+        metrics: simulator
+    endpoints:
+      - port: metrics
+        path: /metrics
+        interval: 1s
+
 # Image streams
 
 - kind: ImageStream
@@ -174,19 +252,23 @@ objects:
         kind: ImageStreamTag
         name: simulator-parent:latest
 
-## Consumer
+#
+# Consumer
+#
 
 - kind: DeploymentConfig
   apiVersion: v1
   metadata:
-    name: simulator-consumer-influxdb
+    name: simulator-consumer
     labels:
       app: simulator
+      metrics: simulator
+      deploymentconfig: simulator-consumer
   spec:
     replicas: 1
     selector:
       app: simulator
-      deploymentconfig: simulator-consumer-influxdb
+      deploymentconfig: simulator-consumer
     strategy:
       type: Rolling
     triggers:
@@ -195,7 +277,7 @@ objects:
         imageChangeParams:
           automatic: true
           containerNames:
-            - consumer-influxdb
+            - consumer
           from:
             kind: ImageStreamTag
             name: simulator-parent:latest
@@ -203,19 +285,23 @@ objects:
       metadata:
         labels:
           app: simulator
-          deploymentconfig: simulator-consumer-influxdb
+          deploymentconfig: simulator-consumer
       spec:
         containers:
         - image: simulator-parent
           imagePullPolicy: Always
-          name: consumer-influxdb
+          name: consumer
           command:
             - "java"
             - "-Xmx1024m"
             - "-Dvertx.cacheDirBase=/tmp"
             - "-Dvertx.logger-delegate-factory-class-name=io.vertx.core.logging.SLF4JLogDelegateFactory"
             - "-jar"
-            - "/build/simulator-consumer-influxdb/target/simulator-consumer-influxdb-app.jar"
+            - "/build/simulator-consumer/target/simulator-consumer-app.jar"
+          ports:
+            - containerPort: 8081
+              name: metrics
+              protocol: TCP
           env:
             - name: HONO_TRUSTED_CERTS
               value: /etc/config/server-cert.pem
@@ -228,26 +314,10 @@ objects:
             - name: HONO_INITIAL_CREDITS
               value: "100"
 
-            - name: INFLUXDB_USER
-              value: ${INFLUXDB_USER}
-            - name: INFLUXDB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: simulator-secrets
-                  key: influxdb-user-password
-            - name: INFLUXDB_NAME
-              value: ${INFLUXDB_DB}
-            - name: INFLUXDB_METRICS_BATCH_SIZE
-              value: "100"
-            - name: INFLUXDB_METRICS_FLUSH_DURATION_SECONDS
-              value: "10"
-
             - name: MESSAGING_SERVICE_HOST
               value: "${MESSAGING_HOST}"
             - name: MESSAGING_SERVICE_PORT_AMQP
               value: "${MESSAGING_PORT}"
-            - name: ENABLE_PERSISTENCE
-              value: "false"
 
           volumeMounts:
             - name: config-volume
@@ -256,6 +326,25 @@ objects:
           - name: config-volume
             configMap:
               name: simulator-config
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: simulator-consumer
+    labels:
+      metrics: simulator
+  spec:
+    ports:
+    - name: metrics
+      port: 8081
+      targetPort: 8081
+    selector:
+      app: simulator
+      deploymentconfig: simulator-consumer
+
+#
+# HTTP producer
+#
 
 - kind: DeploymentConfig
   apiVersion: v1

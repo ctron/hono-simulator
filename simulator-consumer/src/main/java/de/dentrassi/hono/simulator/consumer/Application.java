@@ -15,12 +15,9 @@ import static io.vertx.core.CompositeFuture.join;
 import static java.lang.System.getenv;
 import static java.util.Optional.ofNullable;
 
-import java.time.Instant;
+import java.util.EnumSet;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import org.eclipse.hono.client.HonoClient;
 import org.eclipse.hono.client.MessageConsumer;
@@ -29,15 +26,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.DeadlockDetector;
-import io.glutamate.lang.Environment;
-import de.dentrassi.hono.demo.common.InfluxDbMetrics;
-import de.dentrassi.hono.demo.common.Tags;
 import de.dentrassi.hono.demo.common.Tenant;
+import io.glutamate.lang.Environment;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.OpenSSLEngineOptions;
+import io.vertx.micrometer.MetricsDomain;
+import io.vertx.micrometer.MicrometerMetricsOptions;
+import io.vertx.micrometer.VertxPrometheusOptions;
+import io.vertx.micrometer.backends.BackendRegistries;
 import io.vertx.proton.ProtonClientOptions;
 import io.vertx.proton.ProtonConnection;
 
@@ -50,24 +52,9 @@ public class Application {
     private final CountDownLatch latch;
     private final String tenant;
 
-    private final InfluxDbConsumer consumer;
-    private final InfluxDbMetrics metrics;
-
-    private final ScheduledExecutorService stats;
-
     private final Consumer telemetryConsumer;
 
     private final Consumer eventConsumer;
-
-    private static final boolean PERSISTENCE_ENABLED = Optional
-            .ofNullable(System.getenv("ENABLE_PERSISTENCE"))
-            .map(Boolean::parseBoolean)
-            .orElse(true);
-
-    private static final boolean METRICS_ENABLED = Optional
-            .ofNullable(System.getenv("ENABLE_METRICS"))
-            .map(Boolean::parseBoolean)
-            .orElse(true);
 
     private static final long DEFAULT_CONNECT_TIMEOUT_MILLIS = 5_000;
 
@@ -77,14 +64,14 @@ public class Application {
 
             final Application app = new Application(
                     Tenant.TENANT,
-                    getenv("MESSAGING_SERVICE_HOST"), // HONO_DISPATCH_ROUTER_EXT_SERVICE_HOST
+                    Environment.get("MESSAGING_SERVICE_HOST").orElse("localhost"), // HONO_DISPATCH_ROUTER_EXT_SERVICE_HOST
                     Environment.getAs("MESSAGING_SERVICE_PORT_AMQP", 5671, Integer::parseInt), // HONO_DISPATCH_ROUTER_EXT_SERVICE_PORT
                     getenv("HONO_USER"),
                     getenv("HONO_PASSWORD"),
                     ofNullable(getenv("HONO_TRUSTED_CERTS")));
 
             try {
-                app.consumeTelemetryData();
+                app.consumeMessages();
                 System.out.println("Exiting application ...");
             } finally {
                 app.close();
@@ -107,34 +94,27 @@ public class Application {
 
         System.out.format("Hono Consumer - Server: %s:%s%n", host, port);
 
-        if (PERSISTENCE_ENABLED && getenv("INFLUXDB_NAME") != null) {
-            logger.info("Recording payload");
-            this.consumer = new InfluxDbConsumer(makeInfluxDbUrl(),
-                    getenv("INFLUXDB_USER"),
-                    getenv("INFLUXDB_PASSWORD"),
-                    getenv("INFLUXDB_NAME"));
-        } else {
-            this.consumer = null;
-        }
-
-        if (METRICS_ENABLED && getenv("INFLUXDB_NAME") != null) {
-            logger.info("Recording metrics");
-            this.metrics = new InfluxDbMetrics(makeInfluxDbUrl(),
-                    getenv("INFLUXDB_USER"),
-                    getenv("INFLUXDB_PASSWORD"),
-                    getenv("INFLUXDB_NAME"));
-        } else {
-            this.metrics = null;
-        }
-
         this.tenant = tenant;
         System.out.format("Hono tenant: %s%n", this.tenant);
 
         final VertxOptions options = new VertxOptions();
 
         options.setPreferNativeTransport(true);
+        options.setMetricsOptions(
+                new MicrometerMetricsOptions()
+                        .setEnabled(true)
+                        .setDisabledMetricsCategories(EnumSet.allOf(MetricsDomain.class))
+                        .setPrometheusOptions(
+                                new VertxPrometheusOptions()
+                                        .setEmbeddedServerOptions(
+                                                new HttpServerOptions()
+                                                        .setPort(8081))
+                                        .setEnabled(true)
+                                        .setStartEmbeddedServer(true)));
 
         this.vertx = Vertx.vertx(options);
+
+        final MeterRegistry registry = BackendRegistries.getDefaultNow();
 
         System.out.println("Vertx Native: " + this.vertx.isNativeTransportEnabled());
 
@@ -161,49 +141,15 @@ public class Application {
 
         this.latch = new CountDownLatch(1);
 
-        this.telemetryConsumer = new Consumer(this.consumer);
-        this.eventConsumer = new Consumer(this.consumer);
-
-        // start update stats after having consumers created
-
-        this.stats = Executors.newSingleThreadScheduledExecutor();
-        this.stats.scheduleAtFixedRate(this::updateStats, 1, 1, TimeUnit.SECONDS);
+        this.telemetryConsumer = new Consumer(registry.counter("messages.received", Tags.of("type", "telemetry")));
+        this.eventConsumer = new Consumer(registry.counter("messages.received", Tags.of("type", "event")));
 
     }
 
     private void close() {
-        this.stats.shutdown();
         this.honoClient.shutdown(done -> {
         });
         this.vertx.close();
-    }
-
-    public void updateStats() {
-
-        final Instant now = Instant.now();
-
-        final long n1 = this.telemetryConsumer.getCounter().getAndSet(0);
-        final long n2 = this.eventConsumer.getCounter().getAndSet(0);
-
-        System.out.format("%s: Processed %s telemetry, %s events%n", now, n1, n2);
-
-        try {
-            if (this.metrics != null) {
-                this.metrics.updateStats(now, "consumer", "messageCount", Tags.TELEMETRY, n1);
-                this.metrics.updateStats(now, "consumer", "messageCount", Tags.EVENT, n2);
-            }
-        } catch (final Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static String makeInfluxDbUrl() {
-        final String url = getenv("INFLUXDB_URL");
-        if (url != null && !url.isEmpty()) {
-            return url;
-        }
-
-        return String.format("http://%s:%s", getenv("INFLUXDB_SERVICE_HOST"), getenv("INFLUXDB_SERVICE_PORT_API"));
     }
 
     private ProtonClientOptions getOptions() {
@@ -216,7 +162,7 @@ public class Application {
         return options;
     }
 
-    private void consumeTelemetryData() throws Exception {
+    private void consumeMessages() throws Exception {
         connect()
                 .setHandler(startup -> {
                     if (startup.failed()) {
