@@ -141,8 +141,13 @@ public class Application {
 
         this.latch = new CountDownLatch(1);
 
-        this.telemetryConsumer = new Consumer(registry.counter("messages.received", Tags.of("type", "telemetry")));
-        this.eventConsumer = new Consumer(registry.counter("messages.received", Tags.of("type", "event")));
+        final Tags commonTags = Tags
+                .of("tenant", this.tenant);
+
+        this.telemetryConsumer = new Consumer(
+                registry.counter("messages.received", commonTags.and("type", "telemetry")));
+        this.eventConsumer = new Consumer(
+                registry.counter("messages.received", commonTags.and("type", "event")));
 
     }
 
