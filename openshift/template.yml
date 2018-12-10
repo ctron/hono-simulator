@@ -101,7 +101,7 @@ objects:
   metadata:
     name: prometheus
     labels:
-      app: hono-metrics
+      app: metrics
   spec:
     channel: preview
     name: prometheus
@@ -147,6 +147,8 @@ objects:
   apiVersion: monitoring.coreos.com/v1
   metadata:
     name: prometheus
+    labels:
+      app: metrics
   spec:
     serviceAccountName: prometheus
     serviceMonitorSelector:
