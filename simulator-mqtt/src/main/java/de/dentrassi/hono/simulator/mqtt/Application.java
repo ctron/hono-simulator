@@ -152,7 +152,7 @@ public class Application {
 
             final Instant now = Instant.now();
 
-            System.out.format("%s: Connected: %8s, Sent/T: %8s, Sent/E: %8s", connected, sentTelemetry, sentEvent);
+            System.out.format("Connected: %8s, Sent/T: %8s, Sent/E: %8s", connected, sentTelemetry, sentEvent);
             System.out.println();
             System.out.flush();
 
