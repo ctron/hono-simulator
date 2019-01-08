@@ -196,12 +196,34 @@ objects:
 - kind: ImageStream
   apiVersion: v1
   metadata:
+    name: fedora
+  spec:
+    lookupPolicy:
+      local: false
+    tags:
+    - name: "29"
+      from:
+        kind: DockerImage
+        name: docker.io/fedora:29
+      importPolicy:
+        scheduled: true
+      referencePolicy:
+        type: Source
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
     name: simulator-base
 
 - kind: ImageStream
   apiVersion: v1
   metadata:
     name: simulator-parent
+
+- kind: ImageStream
+  apiVersion: v1
+  metadata:
+    name: simulator-console
 
 # Builds
 
@@ -253,6 +275,105 @@ objects:
       to:
         kind: ImageStreamTag
         name: simulator-parent:latest
+
+- kind: BuildConfig
+  apiVersion: v1
+  metadata:
+    name: simulator-console
+  spec:
+    triggers: 
+      - type: ImageChange
+      - type: ConfigChange
+    source: 
+      type: Git
+      git:
+        uri: https://github.com/ctron/iot-simulator-console
+        ref: develop
+    strategy: 
+      type: Docker
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: fedora:29
+    output:
+      to:
+        kind: ImageStreamTag
+        name: simulator-console:latest
+
+- kind: Route
+  apiVersion: route.openshift.io/v1
+  metadata:
+    name: console
+  spec:
+    port:
+      targetPort: ui
+    tls:
+      termination: edge
+    to:
+      kind: Service
+      name: simulator-console
+
+#
+# Console 
+#
+
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: simulator-console
+    labels:
+      app: simulator
+      metrics: simulator
+      deploymentconfig: simulator-console
+  spec:
+    replicas: 1
+    selector:
+      app: simulator
+      deploymentconfig: simulator-console
+    strategy:
+      type: Rolling
+    triggers:
+      - type: ConfigChange 
+      - type: ImageChange 
+        imageChangeParams:
+          automatic: true
+          containerNames:
+            - console
+          from:
+            kind: ImageStreamTag
+            name: simulator-console:latest
+    template:
+      metadata:
+        labels:
+          app: simulator
+          deploymentconfig: simulator-console
+      spec:
+        containers:
+        - image: simulator-console
+          imagePullPolicy: Always
+          name: console
+          ports:
+            - containerPort: 8080
+              name: ui
+              protocol: TCP
+          env:
+            - name: GIN_MODE
+              value: release
+
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: simulator-console
+    labels:
+      metrics: simulator
+  spec:
+    ports:
+    - name: ui
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: simulator
+      deploymentconfig: simulator-console
 
 #
 # Consumer
