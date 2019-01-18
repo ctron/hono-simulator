@@ -13,6 +13,8 @@ package de.dentrassi.hono.simulator.mqtt;
 import static de.dentrassi.hono.demo.common.Register.shouldRegister;
 
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
+
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.demo.common.Tls;
 import io.glutamate.lang.Environment;
@@ -53,8 +55,10 @@ public class Device {
 
     private final Random random = new Random();
 
+    private final AtomicLong connectedCount;
+
     public Device(final Vertx vertx, final String username, final String deviceId, final String tenant,
-            final String password, final Register register) {
+            final String password, final Register register, final AtomicLong connectedCount) {
 
         this.vertx = vertx;
         this.register = register;
@@ -62,6 +66,8 @@ public class Device {
         this.deviceId = deviceId;
         this.username = username;
         this.password = password;
+
+        this.connectedCount = connectedCount;
 
         this.payload = Buffer.factory.buffer("{foo: 42}");
 
@@ -116,15 +122,15 @@ public class Device {
         return delay;
     }
 
-    public void tickTelemetry() {
+    public void tickTelemetry(final Statistics stats) {
         this.vertx.runOnContext(v -> {
-            doPublish(Application.TELEMETRY_STATS, "telementry", MqttQoS.AT_MOST_ONCE);
+            doPublish(stats, "telementry", MqttQoS.AT_MOST_ONCE);
         });
     }
 
-    public void tickEvent() {
+    public void tickEvent(final Statistics stats) {
         this.vertx.runOnContext(v -> {
-            doPublish(Application.EVENT_STATS, "event", MqttQoS.AT_LEAST_ONCE);
+            doPublish(stats, "event", MqttQoS.AT_LEAST_ONCE);
         });
     }
 
@@ -145,14 +151,14 @@ public class Device {
     private void connectionEstablished() {
         if (!this.connected) {
             this.connected = true;
-            Application.CONNECTED.incrementAndGet();
+            this.connectedCount.incrementAndGet();
         }
     }
 
     protected void connectionLost(final Throwable throwable) {
         if (this.connected) {
             this.connected = false;
-            Application.CONNECTED.decrementAndGet();
+            this.connectedCount.decrementAndGet();
         }
 
         if (throwable instanceof MqttConnectionException) {

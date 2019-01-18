@@ -11,22 +11,25 @@
 
 package de.dentrassi.hono.simulator.mqtt;
 
-import java.util.concurrent.atomic.AtomicLong;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 
 public class Statistics {
 
-    private final AtomicLong ticked = new AtomicLong();
-    private final AtomicLong sent = new AtomicLong();
+    private final Counter ticked;
+    private final Counter sent;
 
-    public void sent() {
-        sent.incrementAndGet();
+    public Statistics(final MeterRegistry metrics, final Tags commonTags) {
+        this.sent = metrics.counter("messages.sent", commonTags);
+        this.ticked = metrics.counter("messages.scheduled", commonTags);
     }
 
-    public long collectSent() {
-        return this.sent.getAndSet(0);
+    public void sent() {
+        this.sent.increment();
     }
 
     public void ticked() {
-        this.ticked.incrementAndGet();
+        this.ticked.increment();
     }
 }

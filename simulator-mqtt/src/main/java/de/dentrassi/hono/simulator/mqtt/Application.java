@@ -10,16 +10,10 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.mqtt;
 
-import static de.dentrassi.hono.demo.common.Tags.EVENT;
-import static de.dentrassi.hono.demo.common.Tags.TELEMETRY;
 import static io.glutamate.lang.Environment.getAs;
-import static java.lang.System.getenv;
+import static io.micrometer.core.instrument.Tag.of;
 
-import java.time.Instant;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.EnumSet;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -27,43 +21,25 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import de.dentrassi.hono.demo.common.InfluxDbMetrics;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.demo.common.Tenant;
 import de.dentrassi.hono.demo.common.Tls;
+import io.glutamate.lang.Environment;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
+import io.vertx.core.http.HttpServerOptions;
+import io.vertx.micrometer.MetricsDomain;
+import io.vertx.micrometer.MicrometerMetricsOptions;
+import io.vertx.micrometer.VertxPrometheusOptions;
+import io.vertx.micrometer.backends.BackendRegistries;
 import okhttp3.OkHttpClient;
 
 public class Application {
 
-    private static final Logger logger = LoggerFactory.getLogger(Application.class);
-
     private static final int TELEMETRY_MS = getAs("TELEMETRY_MS", 0, Integer::parseInt);
     private static final int EVENT_MS = getAs("EVENT_MS", 0, Integer::parseInt);
-
-    static final Statistics TELEMETRY_STATS = new Statistics();
-    static final Statistics EVENT_STATS = new Statistics();
-    static final AtomicLong CONNECTED = new AtomicLong();
-
-    private static InfluxDbMetrics metrics;
-
-    private static final boolean METRICS_ENABLED = Optional
-            .ofNullable(System.getenv("ENABLE_METRICS"))
-            .map(Boolean::parseBoolean)
-            .orElse(true);
-
-    private static String makeInfluxDbUrl() {
-        final String url = getenv("INFLUXDB_URL");
-        if (url != null && !url.isEmpty()) {
-            return url;
-        }
-
-        return String.format("http://%s:%s", getenv("INFLUXDB_SERVICE_HOST"), getenv("INFLUXDB_SERVICE_PORT_API"));
-    }
 
     public static <T> T envOrElse(final String name, final Function<String, T> converter, final T defaultValue) {
         final String value = System.getenv(name);
@@ -77,21 +53,11 @@ public class Application {
 
     public static void main(final String[] args) throws Exception {
 
-        if (METRICS_ENABLED) {
-            logger.info("Recording metrics");
-            metrics = new InfluxDbMetrics(makeInfluxDbUrl(),
-                    getenv("INFLUXDB_USER"),
-                    getenv("INFLUXDB_PASSWORD"),
-                    getenv("INFLUXDB_NAME"));
-        } else {
-            metrics = null;
-        }
+        final int numberOfDevices = Environment.getAs("NUM_DEVICES", 10, Integer::parseInt);
+        final int numberOfThreads = Environment.getAs("NUM_THREADS", 10, Integer::parseInt);
+        final int eventLoopPoolSize = Environment.getAs("VERTX_EVENT_POOL_SIZE", 10, Integer::parseInt);
 
-        final int numberOfDevices = envOrElse("NUM_DEVICES", Integer::parseInt, 10);
-        final int numberOfThreads = envOrElse("NUM_THREADS", Integer::parseInt, 10);
-        final int eventLoopPoolSize = envOrElse("VERTX_EVENT_POOL_SIZE", Integer::parseInt, 10);
-
-        final String deviceIdPrefix = System.getenv("HOSTNAME");
+        final String deviceIdPrefix = Environment.get("HOSTNAME").orElse("");
 
         final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
         if ( Tls.insecure()) {
@@ -101,9 +67,6 @@ public class Application {
 
         final Register register = new Register(http, Tenant.TENANT);
 
-        final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
-        statsExecutor.scheduleAtFixedRate(Application::dumpStats, 1, 1, TimeUnit.SECONDS);
-
         final ScheduledExecutorService executor = Executors.newScheduledThreadPool(numberOfThreads);
 
         final VertxOptions options = new VertxOptions();
@@ -112,11 +75,32 @@ public class Application {
         options.setEventLoopPoolSize(eventLoopPoolSize);
         options.setPreferNativeTransport(true);
 
+        options.setMetricsOptions(
+                new MicrometerMetricsOptions()
+                        .setEnabled(true)
+                        .setDisabledMetricsCategories(EnumSet.allOf(MetricsDomain.class))
+                        .setPrometheusOptions(
+                                new VertxPrometheusOptions()
+                                        .setEmbeddedServerOptions(
+                                                new HttpServerOptions()
+                                                        .setPort(8081))
+                                        .setEnabled(true)
+                                        .setStartEmbeddedServer(true)));
+
         final Vertx vertx = Vertx.factory.vertx(options);
 
         System.out.println("Using native: " + vertx.isNativeTransportEnabled());
 
         final Random r = new Random();
+
+        final Tags commonTags = Tags.of(
+                of("tenant", Tenant.TENANT),
+                of("protocol", "mqtt"));
+
+        final MeterRegistry metrics = BackendRegistries.getDefaultNow();
+        final AtomicLong connected = metrics.gauge("connections", commonTags, new AtomicLong());
+        final Statistics telemetryStats = new Statistics(metrics, commonTags.and(of("type", "telemetry")));
+        final Statistics eventStats = new Statistics(metrics, commonTags.and(of("type", "event")));
 
         try {
 
@@ -125,15 +109,16 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device = new Device(vertx, username, deviceId, Tenant.TENANT, "hono-secret", register);
+                final Device device = new Device(vertx, username, deviceId, Tenant.TENANT, "hono-secret", register,
+                        connected);
 
                 if (TELEMETRY_MS > 0) {
-                    executor.scheduleAtFixedRate(device::tickTelemetry, r.nextInt(TELEMETRY_MS), TELEMETRY_MS,
-                            TimeUnit.MILLISECONDS);
+                    executor.scheduleAtFixedRate(() -> device.tickTelemetry(telemetryStats), r.nextInt(TELEMETRY_MS),
+                            TELEMETRY_MS, TimeUnit.MILLISECONDS);
                 }
                 if (EVENT_MS > 0) {
-                    executor.scheduleAtFixedRate(device::tickEvent, r.nextInt(EVENT_MS), EVENT_MS,
-                            TimeUnit.MILLISECONDS);
+                    executor.scheduleAtFixedRate(() -> device.tickEvent(eventStats), r.nextInt(EVENT_MS),
+                            EVENT_MS, TimeUnit.MILLISECONDS);
                 }
             }
 
@@ -142,36 +127,6 @@ public class Application {
             executor.shutdown();
         }
 
-    }
-
-    private static void dumpStats() {
-        try {
-            final long sentTelemetry = TELEMETRY_STATS.collectSent();
-            final long sentEvent = EVENT_STATS.collectSent();
-            final long connected = CONNECTED.get();
-
-            final Instant now = Instant.now();
-
-            System.out.format("Connected: %8s, Sent/T: %8s, Sent/E: %8s", connected, sentTelemetry, sentEvent);
-            System.out.println();
-            System.out.flush();
-
-            if (metrics != null) {
-                final Map<String, Number> values = new HashMap<>(4);
-                values.put("sent", sentTelemetry);
-                metrics.updateStats(now, "mqtt-publish", values, TELEMETRY);
-
-                values.put("sent", sentEvent);
-                metrics.updateStats(now, "mqtt-publish", values, EVENT);
-
-                values.clear();
-                values.put("connected", connected);
-                metrics.updateStats(now, "mqtt-device", values, Collections.emptyMap());
-            }
-
-        } catch (final Exception e) {
-            logger.error("Failed to dump statistics", e);
-        }
     }
 
 }
