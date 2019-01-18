@@ -36,6 +36,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.OpenSSLEngineOptions;
+import io.vertx.ext.healthchecks.HealthCheckHandler;
+import io.vertx.ext.healthchecks.Status;
+import io.vertx.ext.web.Router;
 import io.vertx.micrometer.MetricsDomain;
 import io.vertx.micrometer.MicrometerMetricsOptions;
 import io.vertx.micrometer.VertxPrometheusOptions;
@@ -53,12 +56,36 @@ public class Application {
     private final String tenant;
 
     private final Consumer telemetryConsumer;
-
     private final Consumer eventConsumer;
+
+    private final boolean consumeTelemetry;
+
+    private final boolean consumeEvent;
 
     private static final long DEFAULT_CONNECT_TIMEOUT_MILLIS = 5_000;
 
     public static void main(final String[] args) throws Exception {
+
+        final boolean consumeTelemetry;
+        final boolean consumeEvent;
+        final String type = Environment.get("CONSUMING").orElse("");
+        switch (type) {
+        case "telemetry":
+            consumeTelemetry = true;
+            consumeEvent = false;
+            break;
+        case "event":
+            consumeTelemetry = false;
+            consumeEvent = true;
+            break;
+        case "":
+            consumeTelemetry = true;
+            consumeEvent = true;
+            break;
+        default:
+            System.err.println("Invalid consumer type (telemetry, event, <empty>): " + type);
+            return;
+        }
 
         try (final DeadlockDetector detector = new DeadlockDetector()) {
 
@@ -68,7 +95,9 @@ public class Application {
                     Environment.getAs("MESSAGING_SERVICE_PORT_AMQP", 5671, Integer::parseInt), // HONO_DISPATCH_ROUTER_EXT_SERVICE_PORT
                     getenv("HONO_USER"),
                     getenv("HONO_PASSWORD"),
-                    ofNullable(getenv("HONO_TRUSTED_CERTS")));
+                    ofNullable(getenv("HONO_TRUSTED_CERTS")),
+                    consumeTelemetry, consumeEvent
+                    );
 
             try {
                 app.consumeMessages();
@@ -90,12 +119,16 @@ public class Application {
     }
 
     public Application(final String tenant, final String host, final int port, final String user, final String password,
-            final Optional<String> trustedCerts) {
+            final Optional<String> trustedCerts, final boolean consumeTelemetry, final boolean consumeEvent) {
 
         System.out.format("Hono Consumer - Server: %s:%s%n", host, port);
 
         this.tenant = tenant;
-        System.out.format("Hono tenant: %s%n", this.tenant);
+        this.consumeTelemetry = consumeTelemetry;
+        this.consumeEvent = consumeEvent;
+
+        System.out.format("    Tenant: %s%n", this.tenant);
+        System.out.format("    Consuming - telemetry: %s, events: %s%n", consumeTelemetry, consumeEvent);
 
         final VertxOptions options = new VertxOptions();
 
@@ -113,6 +146,10 @@ public class Application {
                                         .setStartEmbeddedServer(true)));
 
         this.vertx = Vertx.vertx(options);
+
+        final HealthCheckHandler healthCheckHandler = HealthCheckHandler.create(vertx);
+        final Router router = Router.router(vertx);
+        router.get("/health").handler(healthCheckHandler);
 
         final MeterRegistry registry = BackendRegistries.getDefaultNow();
 
@@ -138,6 +175,12 @@ public class Application {
         Environment.getAs("HONO_INITIAL_CREDITS", Integer::parseInt).ifPresent(config::setInitialCredits);
 
         this.honoClient = HonoClient.newClient(this.vertx, config);
+
+        healthCheckHandler.register("client-connected", future -> {
+            honoClient.isConnected()
+                    .map(v -> Status.OK())
+                    .handle(future);
+        });
 
         this.latch = new CountDownLatch(1);
 
@@ -183,6 +226,10 @@ public class Application {
 
     private Future<MessageConsumer> createTelemetryConsumer(final HonoClient connectedClient) {
 
+        if (!this.consumeTelemetry) {
+            return Future.succeededFuture();
+        }
+
         return connectedClient.createTelemetryConsumer(this.tenant,
                 this.telemetryConsumer::handleMessage, closeHandler -> {
 
@@ -199,6 +246,10 @@ public class Application {
     }
 
     private Future<MessageConsumer> createEventConsumer(final HonoClient connectedClient) {
+
+        if (!this.consumeEvent) {
+            return Future.succeededFuture();
+        }
 
         return connectedClient.createEventConsumer(this.tenant,
                 this.eventConsumer::handleMessage, closeHandler -> {
