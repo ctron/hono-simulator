@@ -317,6 +317,38 @@ objects:
 # Console 
 #
 
+- kind: ServiceAccount
+  apiVersion: v1
+  metadata:
+    name: simulator-console
+
+- kind: Role
+  apiVersion: rbac.authorization.k8s.io/v1
+  metadata:
+    name: simulator-console
+  rules:
+  - apiGroups: [""]
+    resources:
+    - deploymentconfigs
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps.openshift.io"]
+    resources:
+    - deploymentconfigs
+    verbs: ["get", "list", "watch"]
+
+- kind: RoleBinding
+  apiVersion: rbac.authorization.k8s.io/v1beta1
+  metadata:
+    name: simulator-console
+  roleRef:
+    apiGroup: rbac.authorization.k8s.io
+    kind: Role
+    name: simulator-console
+  subjects:
+  - kind: ServiceAccount
+    name: simulator-console
+    namespace: hono-simulator
+
 - kind: DeploymentConfig
   apiVersion: v1
   metadata:
@@ -348,6 +380,7 @@ objects:
           app: simulator
           deploymentconfig: simulator-console
       spec:
+        serviceAccount: simulator-console
         containers:
         - image: simulator-console
           imagePullPolicy: Always
@@ -359,6 +392,10 @@ objects:
           env:
             - name: GIN_MODE
               value: release
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
 
 - kind: Service
   apiVersion: v1
@@ -409,6 +446,7 @@ objects:
         labels:
           app: simulator
           deploymentconfig: simulator-consumer
+          iot.simulator.tenant: "${HONO_TENANT}"
       spec:
         containers:
         - image: simulator-parent
@@ -422,6 +460,9 @@ objects:
             - "-jar"
             - "/build/simulator-consumer/target/simulator-consumer-app.jar"
           ports:
+            - containerPort: 8080
+              name: health
+              protocol: TCP
             - containerPort: 8081
               name: metrics
               protocol: TCP
@@ -433,7 +474,9 @@ objects:
             - name: HONO_PASSWORD
               value: verysecret
             - name: HONO_TENANT
-              value: ${HONO_TENANT}
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['iot.simulator.tenant']
             - name: HONO_INITIAL_CREDITS
               value: "100"
 
@@ -475,6 +518,9 @@ objects:
     name: simulator-http
     labels:
       app: simulator
+      iot.producer: http
+      iot.simulator.tenant: ${HONO_TENANT}
+      deploymentconfig: simulator-http
   spec:
     replicas: 0
     selector:
@@ -497,6 +543,7 @@ objects:
         labels:
           app: simulator
           deploymentconfig: simulator-http
+          iot.simulator.tenant: ${HONO_TENANT}
       spec:
         containers:
         - image: simulator-parent
@@ -515,7 +562,9 @@ objects:
             - name: HONO_HTTP_URL
               value: "${HONO_HTTP_SCHEMA}${HONO_HTTP_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
             - name: HONO_TENANT
-              value: ${HONO_TENANT}
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['iot.simulator.tenant']
 
             - name: NUM_DEVICES
               value: "2000"
@@ -554,12 +603,33 @@ objects:
             - name: VERTX_KEEP_ALIVE
               value: 'true'
 
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: simulator-http
+    labels:
+      metrics: simulator
+  spec:
+    ports:
+    - name: metrics
+      port: 8081
+      targetPort: 8081
+    selector:
+      app: simulator
+      deploymentconfig: simulator-http
+
+#
+# MQTT producer
+#
+
 - kind: DeploymentConfig
   apiVersion: v1
   metadata:
     name: simulator-mqtt
     labels:
       app: simulator
+      iot.producer: mqtt
+      deploymentconfig: simulator-mqtt
   spec:
     replicas: 0
     selector:
@@ -587,6 +657,10 @@ objects:
         - image: simulator-mqtt
           imagePullPolicy: Always
           name: simulator-mqtt
+          ports:
+            - containerPort: 8081
+              name: metrics
+              protocol: TCP
           command:
             - "java"
             - "-Xmx1024m"
@@ -598,7 +672,9 @@ objects:
             - name: DEVICE_REGISTRY_URL
               value: "${HONO_REGISTRATION_SCHEMA}${HONO_REGISTRATION_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
             - name: HONO_TENANT
-              value: ${HONO_TENANT}
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['iot.simulator.tenant']
 
             - name: HONO_MQTT_HOST
               value: "${HONO_MQTT_ROUTE_NAME}.${IOT_CLUSTER_DNS_BASENAME}"
@@ -612,15 +688,6 @@ objects:
               value: "10"
             - name: NUM_THREADS
               value: "10"
-            - name: INFLUXDB_USER
-              value: ${INFLUXDB_USER}
-            - name: INFLUXDB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: simulator-secrets
-                  key: influxdb-user-password
-            - name: INFLUXDB_NAME
-              value: ${INFLUXDB_DB}
             - name: TLS_INSECURE
               value: "false"
             - name: TELEMETRY_MS
@@ -628,6 +695,20 @@ objects:
             - name: EVENT_MS
               value: "0"
 
+- kind: Service
+  apiVersion: v1
+  metadata:
+    name: simulator-mqtt
+    labels:
+      metrics: simulator
+  spec:
+    ports:
+    - name: metrics
+      port: 8081
+      targetPort: 8081
+    selector:
+      app: simulator
+      deploymentconfig: simulator-mqtt
 
 ## Influx DB
 

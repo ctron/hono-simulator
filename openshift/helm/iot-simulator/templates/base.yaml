@@ -1,0 +1,59 @@
+---
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-base-build'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  triggers: 
+    - type: ImageChange
+    - type: ConfigChange
+  source: 
+    type: Git
+    git:
+      uri: {{ .Values.simulator.base.git.url }}
+      ref: {{ .Values.simulator.base.git.ref }}
+    contextDir: containers/base
+  strategy: 
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: '{{ include "iot-simulator.fullname" . }}-centos:7'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: '{{ include "iot-simulator.fullname" . }}-base:latest'
+---
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-parent-build'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  triggers: 
+    - type: ImageChange
+    - type: ConfigChange
+  source: 
+    type: Git
+    git:
+      uri: {{ .Values.simulator.base.git.url }}
+      ref: {{ .Values.simulator.base.git.ref }}
+  strategy: 
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: '{{ include "iot-simulator.fullname" . }}-base:latest'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: '{{ include "iot-simulator.fullname" . }}-parent:latest'

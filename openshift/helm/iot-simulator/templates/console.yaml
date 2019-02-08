@@ -1,0 +1,173 @@
+---
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-console'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-console'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+rules:
+- apiGroups: [""]
+  resources:
+  - pods
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps.openshift.io"]
+  resources:
+  - deploymentconfigs
+  verbs: ["get", "list", "watch"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-console'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: '{{ include "iot-simulator.fullname" . }}-console'
+subjects:
+- kind: ServiceAccount
+  name: '{{ include "iot-simulator.fullname" . }}-console'
+  namespace: {{ .Release.Namespace }}
+---
+kind: ImageStream
+apiVersion: image.openshift.io/v1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-console'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+---
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-console'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  triggers: 
+    - type: ImageChange
+    - type: ConfigChange
+  source: 
+    type: Git
+    git:
+      uri: {{ .Values.simulator.console.git.url }}
+      ref: {{ .Values.simulator.console.git.ref }}
+  strategy: 
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: '{{ include "iot-simulator.fullname" . }}-fedora:29'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: '{{ include "iot-simulator.fullname" . }}-console:latest'
+---
+kind: DeploymentConfig
+apiVersion: apps.openshift.io/v1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-console'
+  labels:
+    app: '{{ include "iot-simulator.fullname" . }}'
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  strategy:
+    type: Rolling
+  triggers:
+    - type: ConfigChange 
+    - type: ImageChange 
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - console
+        from:
+          kind: ImageStreamTag
+          name: '{{ include "iot-simulator.fullname" . }}-console:latest'
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccount: '{{ include "iot-simulator.fullname" . }}-console'
+      containers:
+      - image: '{{ include "iot-simulator.fullname" . }}-console'
+        imagePullPolicy: Always
+        name: console
+        ports:
+          - containerPort: 8080
+            name: ui
+            protocol: TCP
+        env:
+          - name: GIN_MODE
+            value: release
+          - name: PROMETHEUS_HOST
+            value: 'prometheus-operated'
+          - name: SIMULATOR_ID
+            value: '{{ .Release.Name }}'
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-console'
+  labels:
+    app: '{{ include "iot-simulator.fullname" . }}'
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  ports:
+  - name: ui
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: {{ include "iot-simulator.fullname" . }}
+spec:
+  port:
+    targetPort: ui
+  tls:
+    termination: edge
+  to:
+    kind: Service
+    name: '{{ include "iot-simulator.fullname" . }}-console'

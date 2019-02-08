@@ -1,0 +1,123 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-operator'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-operator'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+rules:
+- apiGroups: [ "" ]
+  resources: [ "configmaps", "secrets", "pods" ]
+  verbs: [ "*" ]
+- apiGroups: [ "apps.openshift.io" ]
+  resources: [ "deploymentconfigs" ]
+  verbs: [ '*' ]
+- apiGroups: [ "iot.dentrassi.de" ]
+  resources: [ "simulatorconsumers", "simulatorproducers" ]
+  verbs: [ '*' ]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-operator'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+subjects:
+- kind: ServiceAccount
+  name: '{{ include "iot-simulator.fullname" . }}-operator'
+roleRef:
+  kind: Role
+  apiGroup: rbac.authorization.k8s.io
+  name: '{{ include "iot-simulator.fullname" . }}-operator'
+---
+kind: BuildConfig
+apiVersion: build.openshift.io/v1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-operator'
+  labels:
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  triggers:
+    - type: ImageChange
+    - type: ConfigChange
+  source:
+    type: Git
+    git:
+      uri: {{ .Values.simulator.operator.git.url }}
+      ref: {{ .Values.simulator.operator.git.ref }}
+  strategy:
+    type: Docker
+    dockerStrategy:
+      from:
+        kind: ImageStreamTag
+        name: '{{ include "iot-simulator.fullname" . }}-fedora:29'
+  output:
+    to:
+      kind: ImageStreamTag
+      name: '{{ include "iot-simulator.fullname" . }}-operator:latest'
+---
+kind: DeploymentConfig
+apiVersion: apps.openshift.io/v1
+metadata:
+  name: '{{ include "iot-simulator.fullname" . }}-operator'
+  labels:
+    app: '{{ include "iot-simulator.fullname" . }}'
+    deploymentconfig: '{{ include "iot-simulator.fullname" . }}-operator'
+    app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+    helm.sh/chart: {{ include "iot-simulator.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    app: '{{ include "iot-simulator.fullname" . }}'
+    deploymentconfig: '{{ include "iot-simulator.fullname" . }}-operator'
+  strategy:
+    type: Rolling
+  triggers:
+    - type: ConfigChange
+    - type: ImageChange
+      imageChangeParams:
+        automatic: true
+        containerNames:
+          - operator
+        from:
+          kind: ImageStreamTag
+          name: '{{ include "iot-simulator.fullname" . }}-operator:latest'
+  template:
+    metadata:
+      labels:
+        app: '{{ include "iot-simulator.fullname" . }}'
+        deploymentconfig: '{{ include "iot-simulator.fullname" . }}-operator'
+        app.kubernetes.io/name: {{ include "iot-simulator.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      serviceAccount: '{{ include "iot-simulator.fullname" . }}-operator'
+      containers:
+        - image: '{{ include "iot-simulator.fullname" . }}-operator'
+          imagePullPolicy: Always
+          name: operator
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
