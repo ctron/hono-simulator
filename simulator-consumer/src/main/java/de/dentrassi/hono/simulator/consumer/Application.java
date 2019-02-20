@@ -181,9 +181,7 @@ public class Application {
         this.honoClient = HonoClient.newClient(this.vertx, config);
 
         healthCheckHandler.register("client-connected", future -> {
-            honoClient.isConnected()
-                    .map(v -> Status.OK())
-                    .handle(future);
+            isConnected(honoClient, future);
         });
 
         this.latch = new CountDownLatch(1);
@@ -196,6 +194,13 @@ public class Application {
         this.eventConsumer = new Consumer(
                 registry.counter("messages.received", commonTags.and("type", "event")));
 
+    }
+
+    private static void isConnected(final HonoClient honoClient, final Future<Status> future) {
+        honoClient.isConnected()
+                .map(v -> Status.OK())
+                .otherwise(Status.KO())
+                .handle(future);
     }
 
     private void close() {
