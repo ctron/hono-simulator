@@ -199,7 +199,6 @@ public class Application {
     private static void isConnected(final HonoClient honoClient, final Future<Status> future) {
         honoClient.isConnected()
                 .map(v -> Status.OK())
-                .otherwise(Status.KO())
                 .handle(future);
     }
 
