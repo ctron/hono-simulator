@@ -34,13 +34,13 @@ import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.OpenSSLEngineOptions;
 import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.healthchecks.Status;
 import io.vertx.ext.web.Router;
 import io.vertx.micrometer.MetricsDomain;
 import io.vertx.micrometer.MicrometerMetricsOptions;
+import io.vertx.micrometer.PrometheusScrapingHandler;
 import io.vertx.micrometer.VertxPrometheusOptions;
 import io.vertx.micrometer.backends.BackendRegistries;
 import io.vertx.proton.ProtonClientOptions;
@@ -139,16 +139,19 @@ public class Application {
                         .setDisabledMetricsCategories(EnumSet.allOf(MetricsDomain.class))
                         .setPrometheusOptions(
                                 new VertxPrometheusOptions()
-                                        .setEmbeddedServerOptions(
-                                                new HttpServerOptions()
-                                                        .setPort(8081))
-                                        .setEnabled(true)
-                                        .setStartEmbeddedServer(true)));
+                                        .setEnabled(true)));
 
         this.vertx = Vertx.vertx(options);
 
-        final HealthCheckHandler healthCheckHandler = HealthCheckHandler.create(vertx);
-        final Router router = Router.router(vertx);
+        final Router router = Router.router(this.vertx);
+
+        vertx.createHttpServer()
+                .requestHandler(router)
+                .listen(8081);
+
+        router.route("/metrics").handler(PrometheusScrapingHandler.create());
+
+        final HealthCheckHandler healthCheckHandler = HealthCheckHandler.create(this.vertx);
         router.get("/health").handler(healthCheckHandler);
 
         final MeterRegistry registry = BackendRegistries.getDefaultNow();
@@ -168,6 +171,7 @@ public class Application {
         if (System.getenv("DISABLE_TLS") == null) {
             config.setTlsEnabled(true);
             config.setHostnameVerificationRequired(false);
+            System.out.println("TLS disabled");
         }
 
         trustedCerts.ifPresent(config::setTrustStorePath);
