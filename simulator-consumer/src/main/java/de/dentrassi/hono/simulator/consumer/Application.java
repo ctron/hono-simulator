@@ -171,7 +171,7 @@ public class Application {
         if (System.getenv("DISABLE_TLS") == null) {
             config.setTlsEnabled(true);
             config.setHostnameVerificationRequired(false);
-            System.out.println("TLS disabled");
+            System.out.println("TLS enabled");
         }
 
         trustedCerts.ifPresent(config::setTrustStorePath);
