@@ -31,7 +31,9 @@ import io.glutamate.lang.Environment;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.netty.handler.ssl.OpenSsl;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.net.OpenSSLEngineOptions;
@@ -174,6 +176,8 @@ public class Application {
             System.out.println("TLS enabled");
         }
 
+        config.setReconnectAttempts(-1);
+
         trustedCerts.ifPresent(config::setTrustStorePath);
 
         Environment.getAs("HONO_INITIAL_CREDITS", Integer::parseInt).ifPresent(config::setInitialCredits);
@@ -196,10 +200,10 @@ public class Application {
 
     }
 
-    private static void isConnected(final HonoClient honoClient, final Future<Status> future) {
+    private static void isConnected(final HonoClient honoClient, final Handler<AsyncResult<Status>> handler) {
         honoClient.isConnected()
                 .map(v -> Status.OK())
-                .handle(future);
+                .setHandler(handler);
     }
 
     private void close() {
@@ -244,7 +248,7 @@ public class Application {
                     logger.info("close handler of telemetry consumer is called");
 
                     System.err.println("Lost TelemetryConsumer link, restarting …");
-                    System.exit(-1);
+                    // System.exit(-1);
 
                     this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
                         logger.info("attempting to re-open the TelemetryConsumer link ...");
@@ -265,7 +269,7 @@ public class Application {
                     logger.info("close handler of event consumer is called");
 
                     System.err.println("Lost EventConsumer link, restarting …");
-                    System.exit(-1);
+                    // System.exit(-1);
 
                     this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
                         logger.info("attempting to re-open the EventConsumer link ...");
@@ -278,7 +282,7 @@ public class Application {
 
         // reconnect still seems to have issues
         System.err.println("Connection to Hono lost, restarting …");
-        System.exit(-1);
+        // System.exit(-1);
 
         this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
 
