@@ -131,7 +131,7 @@ spec:
           - name: GIN_MODE
             value: release
           - name: PROMETHEUS_HOST
-            value: 'prometheus-operated'
+            value: prometheus-{{ include "iot-simulator.fullname" . }}
           - name: SIMULATOR_ID
             value: '{{ .Release.Name }}'
           - name: NAMESPACE
