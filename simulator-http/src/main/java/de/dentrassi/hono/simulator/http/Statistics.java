@@ -61,7 +61,7 @@ public class Statistics {
     }
 
     public void error(final int code) {
-        registry.counter("error", commonTags.and("code", Integer.toString(code))).increment();
+        registry.counter("messages_error", commonTags.and("code", Integer.toString(code))).increment();
     }
 
     public void duration(final Duration duration) {
