@@ -21,8 +21,8 @@ public class Statistics {
     private final Counter sent;
 
     public Statistics(final MeterRegistry metrics, final Tags commonTags) {
-        this.sent = metrics.counter("messages.sent", commonTags);
-        this.ticked = metrics.counter("messages.scheduled", commonTags);
+        this.sent = metrics.counter("messages_sent", commonTags);
+        this.ticked = metrics.counter("messages_scheduled", commonTags);
     }
 
     public void sent() {
