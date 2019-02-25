@@ -26,11 +26,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.influxdb</groupId>
-            <artifactId>influxdb-java</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>de.dentrassi.hono.simulator</groupId>
             <artifactId>simulator-common</artifactId>
         </dependency>

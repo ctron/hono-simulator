@@ -13,7 +13,6 @@ package de.dentrassi.hono.simulator.mqtt;
 import static io.glutamate.lang.Environment.getAs;
 import static io.micrometer.core.instrument.Tag.of;
 
-import java.util.EnumSet;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -21,19 +20,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
+import de.dentrassi.hono.demo.common.AppRuntime;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.demo.common.Tenant;
 import de.dentrassi.hono.demo.common.Tls;
 import io.glutamate.lang.Environment;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
-import io.vertx.core.http.HttpServerOptions;
-import io.vertx.micrometer.MetricsDomain;
-import io.vertx.micrometer.MicrometerMetricsOptions;
-import io.vertx.micrometer.VertxPrometheusOptions;
-import io.vertx.micrometer.backends.BackendRegistries;
 import okhttp3.OkHttpClient;
 
 public class Application {
@@ -53,9 +46,20 @@ public class Application {
 
     public static void main(final String[] args) throws Exception {
 
+        final int eventLoopPoolSize = Environment.getAs("VERTX_EVENT_POOL_SIZE", 10, Integer::parseInt);
+
+        try (final AppRuntime runtime = new AppRuntime(options -> {
+            options.setEventLoopPoolSize(eventLoopPoolSize);
+        })) {
+            run(runtime);
+        }
+
+    }
+
+    private static void run(final AppRuntime runtime) throws InterruptedException {
+
         final int numberOfDevices = Environment.getAs("NUM_DEVICES", 10, Integer::parseInt);
         final int numberOfThreads = Environment.getAs("NUM_THREADS", 10, Integer::parseInt);
-        final int eventLoopPoolSize = Environment.getAs("VERTX_EVENT_POOL_SIZE", 10, Integer::parseInt);
 
         final String deviceIdPrefix = Environment.get("HOSTNAME").orElse("");
 
@@ -69,27 +73,7 @@ public class Application {
 
         final ScheduledExecutorService executor = Executors.newScheduledThreadPool(numberOfThreads);
 
-        final VertxOptions options = new VertxOptions();
-        options.setClustered(false);
-
-        options.setEventLoopPoolSize(eventLoopPoolSize);
-        options.setPreferNativeTransport(true);
-
-        options.setMetricsOptions(
-                new MicrometerMetricsOptions()
-                        .setEnabled(true)
-                        .setDisabledMetricsCategories(EnumSet.allOf(MetricsDomain.class))
-                        .setPrometheusOptions(
-                                new VertxPrometheusOptions()
-                                        .setEmbeddedServerOptions(
-                                                new HttpServerOptions()
-                                                        .setPort(8081))
-                                        .setEnabled(true)
-                                        .setStartEmbeddedServer(true)));
-
-        final Vertx vertx = Vertx.factory.vertx(options);
-
-        System.out.println("Using native: " + vertx.isNativeTransportEnabled());
+        System.out.println("Using native: " + runtime.getVertx().isNativeTransportEnabled());
 
         final Random r = new Random();
 
@@ -97,7 +81,7 @@ public class Application {
                 of("tenant", Tenant.TENANT),
                 of("protocol", "mqtt"));
 
-        final MeterRegistry metrics = BackendRegistries.getDefaultNow();
+        final MeterRegistry metrics = runtime.getRegistry();
         final AtomicLong connected = metrics.gauge("connections", commonTags, new AtomicLong());
         final Statistics telemetryStats = new Statistics(metrics, commonTags.and(of("type", "telemetry")));
         final Statistics eventStats = new Statistics(metrics, commonTags.and(of("type", "event")));
@@ -109,8 +93,8 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-                final Device device = new Device(vertx, username, deviceId, Tenant.TENANT, "hono-secret", register,
-                        connected);
+                final Device device = new Device(runtime.getVertx(), username, deviceId, Tenant.TENANT, "hono-secret",
+                        register, connected);
 
                 if (TELEMETRY_MS > 0) {
                     executor.scheduleAtFixedRate(() -> device.tickTelemetry(telemetryStats), r.nextInt(TELEMETRY_MS),

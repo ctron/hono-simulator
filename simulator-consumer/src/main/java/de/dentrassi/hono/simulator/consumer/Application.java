@@ -15,7 +15,6 @@ import static io.vertx.core.CompositeFuture.join;
 import static java.lang.System.getenv;
 import static java.util.Optional.ofNullable;
 
-import java.util.EnumSet;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 
@@ -25,26 +24,17 @@ import org.eclipse.hono.config.ClientConfigProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import de.dentrassi.hono.demo.common.AppRuntime;
 import de.dentrassi.hono.demo.common.DeadlockDetector;
 import de.dentrassi.hono.demo.common.Tenant;
 import io.glutamate.lang.Environment;
-import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.netty.handler.ssl.OpenSsl;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.net.OpenSSLEngineOptions;
-import io.vertx.ext.healthchecks.HealthCheckHandler;
 import io.vertx.ext.healthchecks.Status;
-import io.vertx.ext.web.Router;
-import io.vertx.micrometer.MetricsDomain;
-import io.vertx.micrometer.MicrometerMetricsOptions;
-import io.vertx.micrometer.PrometheusScrapingHandler;
-import io.vertx.micrometer.VertxPrometheusOptions;
-import io.vertx.micrometer.backends.BackendRegistries;
 import io.vertx.proton.ProtonClientOptions;
 import io.vertx.proton.ProtonConnection;
 
@@ -52,7 +42,8 @@ public class Application {
 
     private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
-    private final Vertx vertx;
+    private final AppRuntime runtime;
+
     private final HonoClient honoClient;
     private final CountDownLatch latch;
     private final String tenant;
@@ -132,33 +123,9 @@ public class Application {
         System.out.format("    Tenant: %s%n", this.tenant);
         System.out.format("    Consuming - telemetry: %s, events: %s%n", consumeTelemetry, consumeEvent);
 
-        final VertxOptions options = new VertxOptions();
+        this.runtime = new AppRuntime();
 
-        options.setPreferNativeTransport(true);
-        options.setMetricsOptions(
-                new MicrometerMetricsOptions()
-                        .setEnabled(true)
-                        .setDisabledMetricsCategories(EnumSet.allOf(MetricsDomain.class))
-                        .setPrometheusOptions(
-                                new VertxPrometheusOptions()
-                                        .setEnabled(true)));
-
-        this.vertx = Vertx.vertx(options);
-
-        final Router router = Router.router(this.vertx);
-
-        vertx.createHttpServer()
-                .requestHandler(router)
-                .listen(8081);
-
-        router.route("/metrics").handler(PrometheusScrapingHandler.create());
-
-        final HealthCheckHandler healthCheckHandler = HealthCheckHandler.create(this.vertx);
-        router.get("/health").handler(healthCheckHandler);
-
-        final MeterRegistry registry = BackendRegistries.getDefaultNow();
-
-        System.out.println("Vertx Native: " + this.vertx.isNativeTransportEnabled());
+        System.out.println("Vertx Native: " + this.runtime.getVertx().isNativeTransportEnabled());
 
         System.out.format("OpenSSL - available: %s -> %s%n", OpenSsl.isAvailable(), OpenSsl.versionString());
         System.out.println("Key Manager: " + OpenSsl.supportsKeyManagerFactory());
@@ -182,9 +149,9 @@ public class Application {
 
         Environment.getAs("HONO_INITIAL_CREDITS", Integer::parseInt).ifPresent(config::setInitialCredits);
 
-        this.honoClient = HonoClient.newClient(this.vertx, config);
+        this.honoClient = HonoClient.newClient(this.runtime.getVertx(), config);
 
-        healthCheckHandler.register("client-connected", future -> {
+        runtime.register("client-connected", future -> {
             isConnected(honoClient, future);
         });
 
@@ -194,9 +161,9 @@ public class Application {
                 .of("tenant", this.tenant);
 
         this.telemetryConsumer = new Consumer(
-                registry.counter("messages.received", commonTags.and("type", "telemetry")));
+                runtime.getRegistry().counter("messages.received", commonTags.and("type", "telemetry")));
         this.eventConsumer = new Consumer(
-                registry.counter("messages.received", commonTags.and("type", "event")));
+                runtime.getRegistry().counter("messages.received", commonTags.and("type", "event")));
 
     }
 
@@ -207,9 +174,9 @@ public class Application {
     }
 
     private void close() {
+        this.runtime.close();
         this.honoClient.shutdown(done -> {
         });
-        this.vertx.close();
     }
 
     private ProtonClientOptions getOptions() {
@@ -248,9 +215,9 @@ public class Application {
                     logger.info("close handler of telemetry consumer is called");
 
                     System.err.println("Lost TelemetryConsumer link, restarting …");
-                    // System.exit(-1);
+                    System.exit(-1);
 
-                    this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
+                    this.runtime.getVertx().setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
                         logger.info("attempting to re-open the TelemetryConsumer link ...");
                         createTelemetryConsumer(connectedClient);
                     });
@@ -269,9 +236,9 @@ public class Application {
                     logger.info("close handler of event consumer is called");
 
                     System.err.println("Lost EventConsumer link, restarting …");
-                    // System.exit(-1);
+                    System.exit(-1);
 
-                    this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
+                    this.runtime.getVertx().setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
                         logger.info("attempting to re-open the EventConsumer link ...");
                         createEventConsumer(connectedClient);
                     });
@@ -282,9 +249,9 @@ public class Application {
 
         // reconnect still seems to have issues
         System.err.println("Connection to Hono lost, restarting …");
-        // System.exit(-1);
+        System.exit(-1);
 
-        this.vertx.setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
+        this.runtime.getVertx().setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
 
             logger.info("attempting to re-connect to Hono ...");
             connect();

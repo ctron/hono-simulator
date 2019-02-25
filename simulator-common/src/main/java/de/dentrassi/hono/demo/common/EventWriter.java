@@ -30,4 +30,15 @@ public interface EventWriter {
     default void writeEvent(final String title, final String description) {
         writeEvent(Instant.now(), title, description);
     }
+
+    static EventWriter nullWriter() {
+        return new EventWriter() {
+
+            @Override
+            public void writeEvent(final Instant timestamp, final String table, final String title,
+                    final String description,
+                    final Map<String, String> tags) {
+            }
+        };
+    }
 }
