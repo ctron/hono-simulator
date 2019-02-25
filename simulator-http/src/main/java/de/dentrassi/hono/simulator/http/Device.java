@@ -146,7 +146,7 @@ public abstract class Device {
             return CompletableFuture.completedFuture(null);
         }
 
-        statistics.sent();
+        statistics.scheduled();
         final Instant start = Instant.now();
 
         final CompletableFuture<?> future;

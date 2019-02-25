@@ -23,7 +23,7 @@ public class Statistics {
     private final MeterRegistry registry;
     private final Tags commonTags;
 
-    private final Counter sent;
+    private final Counter scheduled;
     private final Counter failure;
     private final Counter success;
     private final AtomicLong backlog;
@@ -33,15 +33,15 @@ public class Statistics {
         this.registry = registry;
         this.commonTags = commonTags;
 
-        this.sent = registry.counter("sent", commonTags);
-        this.failure = registry.counter("failure", commonTags);
-        this.success = registry.counter("success", commonTags);
-        this.backlog = registry.gauge("backlog", commonTags, new AtomicLong());
-        this.durations = this.registry.timer("durations", commonTags);
+        this.scheduled = registry.counter("messages_scheduled", commonTags);
+        this.failure = registry.counter("messages_failure", commonTags);
+        this.success = registry.counter("messages_success", commonTags);
+        this.backlog = registry.gauge("messages_backlog", commonTags, new AtomicLong());
+        this.durations = this.registry.timer("messages_duration", commonTags);
     }
 
-    public void sent() {
-        this.sent.increment();
+    public void scheduled() {
+        this.scheduled.increment();
     }
 
     public void failed() {
