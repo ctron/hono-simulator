@@ -20,7 +20,7 @@ metadata:
     app.kubernetes.io/managed-by: {{ .Release.Service }}
 rules:
 - apiGroups: [ "" ]
-  resources: [ "configmaps", "secrets", "pods" ]
+  resources: [ "configmaps", "secrets", "pods", "services" ]
   verbs: [ "*" ]
 - apiGroups: [ "apps.openshift.io" ]
   resources: [ "deploymentconfigs" ]
