@@ -4,3 +4,7 @@
 .project
 .settings/
 target/
+
+# Temporary files
+
+certs/

@@ -12,4 +12,5 @@ And then:
     oc policy add-role-to-user edit "system:serviceaccount:${TILLER_NAMESPACE}:tiller"
     oc policy add-role-to-user admin "system:serviceaccount:${TILLER_NAMESPACE}:tiller"
     oc policy add-role-to-user cluster-admin "system:serviceaccount:${TILLER_NAMESPACE}:tiller"
+    oc apply -f iot-simulator/crds.yml
     helm install  --name sim ./iot-simulator
