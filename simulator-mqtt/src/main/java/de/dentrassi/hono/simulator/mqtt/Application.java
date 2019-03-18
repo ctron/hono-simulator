@@ -46,10 +46,8 @@ public class Application {
 
     public static void main(final String[] args) throws Exception {
 
-        final int eventLoopPoolSize = Environment.getAs("VERTX_EVENT_POOL_SIZE", 10, Integer::parseInt);
-
         try (final AppRuntime runtime = new AppRuntime(options -> {
-            options.setEventLoopPoolSize(eventLoopPoolSize);
+            Environment.consumeAs("VERTX_EVENT_POOL_SIZE", Integer::parseInt, options::setEventLoopPoolSize);
         })) {
             run(runtime);
         }
