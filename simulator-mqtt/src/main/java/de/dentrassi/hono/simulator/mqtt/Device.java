@@ -93,6 +93,7 @@ public class Device {
 
         this.client = MqttClient.create(vertx, options);
 
+        this.client.publishCompletionHandler(this::publishComplete);
         this.client.closeHandler(v -> connectionLost(null));
 
         startConnect();
@@ -143,9 +144,20 @@ public class Device {
             return;
         }
 
-        stats.sent();
-        
         this.client.publish(topic, this.payload, qos, false, false);
+
+        switch (qos) {
+        case AT_MOST_ONCE:
+            stats.sent();
+            break;
+        case AT_LEAST_ONCE:
+            break;
+        default:
+            break;
+        }
+    }
+
+    private void publishComplete(final Integer packetId) {
     }
 
     private void connectionEstablished() {
@@ -186,6 +198,7 @@ public class Device {
 
     private void register() {
         if (AUTO_REGISTER && shouldRegister()) {
+            System.out.println("Failed to connect ... try auto register");
             try {
                 this.register.device(this.deviceId, this.username, this.password);
             } catch (final Exception e) {
