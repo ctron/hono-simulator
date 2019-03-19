@@ -108,9 +108,10 @@ public class Application {
 
         final Tags commonTags = Tags.of(
                 Tag.of("protocol", "http"),
-                Tag.of("tenant", Tenant.TENANT)
+                Tag.of("tenant", Tenant.TENANT),
+                config.getType().asTag()
                 );
-        final Statistics stats = new Statistics(registry, commonTags.and(config.getType().asTag()));
+        final Statistics stats = new Statistics(registry, commonTags);
 
         final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
         // statsExecutor.scheduleAtFixedRate(Application::dumpStats, 1, 1, TimeUnit.SECONDS);

@@ -76,11 +76,12 @@ public class Application {
 
         final Tags commonTags = Tags.of(
                 of("tenant", Tenant.TENANT),
-                of("protocol", "mqtt"));
+                of("protocol", "mqtt"),
+                config.getType().asTag());
 
         final MeterRegistry metrics = runtime.getRegistry();
         final AtomicLong connected = metrics.gauge("connections", commonTags, new AtomicLong());
-        final Statistics stats = new Statistics(metrics, commonTags.and(config.getType().asTag()));
+        final Statistics stats = new Statistics(metrics, commonTags);
 
         try {
 
