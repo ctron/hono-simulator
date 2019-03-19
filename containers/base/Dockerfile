@@ -26,3 +26,5 @@ RUN \
     rm -Rf ~/.m2/repository && \
     rm -Rf netty-tcnative && \
     yum -y history undo last && yum -y clean all && rm -rf /var/cache/yum
+
+RUN java -version
