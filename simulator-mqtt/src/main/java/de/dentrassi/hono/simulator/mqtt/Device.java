@@ -129,7 +129,7 @@ public class Device {
 
     public void tickTelemetry() {
         this.vertx.runOnContext(v -> {
-            doPublish("telementry", MqttQoS.AT_MOST_ONCE);
+            doPublish("telemetry", MqttQoS.AT_MOST_ONCE);
         });
     }
 
