@@ -45,8 +45,8 @@ public class Device {
 
     private boolean connected;
 
-    private static final String HONO_MQTT_HOST = System.getenv().getOrDefault("HONO_MQTT_HOST", "localhost");
-    private static final int HONO_MQTT_PORT = Application.envOrElse("HONO_MQTT_PORT", Integer::parseInt, 1883);
+    public static final String HONO_MQTT_HOST = System.getenv().getOrDefault("HONO_MQTT_HOST", "localhost");
+    public static final int HONO_MQTT_PORT = Application.envOrElse("HONO_MQTT_PORT", Integer::parseInt, 1883);
 
     private static final boolean AUTO_REGISTER = Environment.getAs("AUTO_REGISTER", true, Boolean::parseBoolean);
 

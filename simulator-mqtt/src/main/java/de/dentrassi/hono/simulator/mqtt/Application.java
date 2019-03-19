@@ -70,6 +70,7 @@ public class Application {
 
         final ScheduledExecutorService executor = Executors.newScheduledThreadPool(numberOfThreads);
 
+        System.out.format("MQTT Endpoint: %s:%s%n", Device.HONO_MQTT_HOST, Device.HONO_MQTT_PORT);
         System.out.println("Using native: " + runtime.getVertx().isNativeTransportEnabled());
 
         final Random r = new Random();
