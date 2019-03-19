@@ -180,7 +180,7 @@ public class Device {
             this.connectedCount.decrementAndGet();
         }
 
-        System.out.format("Connection lost: %s%n", throwable.getMessage());
+        System.out.format("Connection lost: %s%n", throwable != null ? throwable.getMessage() : "<null>");
 
         if (throwable instanceof MqttConnectionException) {
             final MqttConnectReturnCode code = ((MqttConnectionException) throwable).code();
