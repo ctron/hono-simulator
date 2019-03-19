@@ -155,39 +155,4 @@ public class Application {
         throw new IllegalArgumentException(String.format("Unable to find device provider: '%s'", DEVICE_PROVIDER));
     }
 
-    /*
-     * private void dumpStats() { dumpStatistics("Telemetry", TELEMETRY, TELEMETRY_STATS); dumpStatistics("    Event",
-     * EVENT, EVENT_STATS); }
-     */
-
-    /*
-     * private static void dumpStatistics(final String name, final Map<String, String> tags, final Statistics
-     * statistics) { try { final long sent = statistics.getSent().getAndSet(0); final long success =
-     * statistics.getSuccess().getAndSet(0); final long failure = statistics.getFailure().getAndSet(0); final long
-     * durations = statistics.getDurations().getAndSet(0); final long backlog = statistics.getBacklog().get();
-     * 
-     * final double failureRatio; if (sent > 0) { failureRatio = BigDecimal .valueOf(failure)
-     * .divide(BigDecimal.valueOf(sent), 2, RoundingMode.HALF_UP) .doubleValue(); } else { failureRatio = 0.0; }
-     * 
-     * final Map<Integer, Long> counts = new TreeMap<>();
-     * 
-     * for (final Map.Entry<Integer, AtomicLong> entry : statistics.getErrors().entrySet()) { final int code =
-     * entry.getKey(); final long value = entry.getValue().getAndSet(0); counts.put(code, value); }
-     * 
-     * final Instant now = Instant.now();
-     * 
-     * if (metrics != null) { final Map<String, Number> values = new HashMap<>(); values.put("sent", sent);
-     * values.put("success", success); values.put("failure", failure); values.put("backlog", backlog);
-     * values.put("durations", durations); values.put("failureRatio", failureRatio); final double numSent = success +
-     * failure; if (numSent > 0) { values.put("avgDuration", durations / numSent); } metrics.updateStats(now,
-     * "http-publish", values, tags);
-     * 
-     * if (!counts.isEmpty()) { final Map<String, Number> errors = new HashMap<>(); counts.forEach((code, num) -> {
-     * errors.put("" + code, num); }); metrics.updateStats(now, "http-errors", errors, tags); } }
-     * 
-     * System.out.format("%s - Sent: %8d, Success: %8d, Failure: %8d, Backlog: %8d, FRatio: %.2f", name, sent, success,
-     * failure, backlog, failureRatio); counts.forEach((code, num) -> { System.out.format(", %03d: %8d", code, num); });
-     * System.out.format(", %10d ms", durations); System.out.println(); } catch (final Exception e) {
-     * logger.error("Failed to dump statistics", e); } }
-     */
 }
