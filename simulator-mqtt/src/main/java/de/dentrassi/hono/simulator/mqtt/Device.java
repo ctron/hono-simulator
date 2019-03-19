@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017 Red Hat Inc and others.
+ * Copyright (c) 2017, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -47,8 +47,7 @@ public class Device {
     private static final String HONO_MQTT_HOST = System.getenv().getOrDefault("HONO_MQTT_HOST", "localhost");
     private static final int HONO_MQTT_PORT = Application.envOrElse("HONO_MQTT_PORT", Integer::parseInt, 1883);
 
-    private static final boolean AUTO_REGISTER = Boolean
-            .parseBoolean(System.getenv().getOrDefault("AUTO_REGISTER", "true"));
+    private static final boolean AUTO_REGISTER = Environment.getAs("AUTO_REGISTER", true, Boolean::parseBoolean);
 
     private static final long RECONNECT_DELAY = Application.envOrElse("RECONNECT_DELAY", Long::parseLong, 2_000L);
     private static final int RECONNECT_JITTER = Application.envOrElse("RECONNECT_JITTER", Integer::parseInt, 2_000);
@@ -176,6 +175,8 @@ public class Device {
             this.connected = false;
             this.connectedCount.decrementAndGet();
         }
+
+        System.out.format("Connection lost: %s%n", throwable.getMessage());
 
         if (throwable instanceof MqttConnectionException) {
             final MqttConnectReturnCode code = ((MqttConnectionException) throwable).code();
