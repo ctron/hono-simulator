@@ -36,6 +36,7 @@ import de.dentrassi.hono.demo.common.Tls;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
+import io.netty.handler.ssl.OpenSsl;
 import okhttp3.ConnectionPool;
 import okhttp3.OkHttpClient;
 
@@ -67,6 +68,12 @@ public class Application {
 
         System.out.format("#devices: %s, #threads: %s%n", numberOfDevices, numberOfThreads);
         System.out.format("TLS insecure: %s%n", Tls.insecure());
+
+        System.out.println("Vertx Native: " + runtime.getVertx().isNativeTransportEnabled());
+
+        System.out.format("OpenSSL - available: %s -> %s%n", OpenSsl.isAvailable(), OpenSsl.versionString());
+        System.out.println("Key Manager: " + OpenSsl.supportsKeyManagerFactory());
+        System.out.println("Host name validation: " + OpenSsl.supportsHostnameValidation());
 
         final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
 

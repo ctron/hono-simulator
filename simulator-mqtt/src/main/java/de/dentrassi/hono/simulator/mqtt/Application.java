@@ -27,6 +27,7 @@ import de.dentrassi.hono.demo.common.Tls;
 import io.glutamate.lang.Environment;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
+import io.netty.handler.ssl.OpenSsl;
 import okhttp3.OkHttpClient;
 
 public class Application {
@@ -70,8 +71,13 @@ public class Application {
 
         final ScheduledExecutorService executor = Executors.newScheduledThreadPool(numberOfThreads);
 
+        System.out.println("Vertx Native: " + runtime.getVertx().isNativeTransportEnabled());
+
+        System.out.format("OpenSSL - available: %s -> %s%n", OpenSsl.isAvailable(), OpenSsl.versionString());
+        System.out.println("Key Manager: " + OpenSsl.supportsKeyManagerFactory());
+        System.out.println("Host name validation: " + OpenSsl.supportsHostnameValidation());
+
         System.out.format("MQTT Endpoint: %s:%s%n", Device.HONO_MQTT_HOST, Device.HONO_MQTT_PORT);
-        System.out.println("Using native: " + runtime.getVertx().isNativeTransportEnabled());
 
         final Random r = new Random();
 
