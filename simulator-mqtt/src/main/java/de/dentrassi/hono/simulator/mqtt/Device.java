@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.demo.common.Tls;
+import de.dentrassi.hono.simulator.mqtt.vertx.MqttClientImpl;
 import io.glutamate.lang.Environment;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttQoS;
@@ -93,7 +94,7 @@ public class Device {
         options.setUsername(username + "@" + tenant);
         options.setPassword(password);
 
-        this.client = MqttClient.create(vertx, options);
+        this.client = new MqttClientImpl(vertx, options);
 
         this.client.publishCompletionHandler(this::publishComplete);
         this.client.closeHandler(v -> connectionLost(null));
