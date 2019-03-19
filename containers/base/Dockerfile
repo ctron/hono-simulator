@@ -27,4 +27,5 @@ RUN \
     rm -Rf netty-tcnative && \
     yum -y history undo last && yum -y clean all && rm -rf /var/cache/yum
 
+RUN yum remove "java-1.8.0-*"
 RUN java -version
