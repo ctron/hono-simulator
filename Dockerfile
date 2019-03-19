@@ -3,6 +3,10 @@ FROM simulator-base:latest
 MAINTAINER Jens Reimann <jreimann@redhat.com>
 LABEL maintainer="Jens Reimann <jreimann@redhat.com>"
 
+# show java version
+
+RUN java -version
+
 # prepare build
 
 RUN mkdir /build
