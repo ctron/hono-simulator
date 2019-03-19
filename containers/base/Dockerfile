@@ -22,5 +22,7 @@ RUN \
     git checkout netty-tcnative-parent-$NETTY_TCNATIVE_VERSION && \
     cd .. && \
     scl enable rh-maven35 "mvn -B clean install -f netty-tcnative/openssl-dynamic/pom.xml -am" && \
-    install -m 0755 netty-tcnative/openssl-dynamic/target/native-lib-only/META-INF/native/linux64/libnetty_tcnative.so /usr/lib64/libnetty_tcnative.so
-
+    install -m 0755 netty-tcnative/openssl-dynamic/target/native-lib-only/META-INF/native/linux64/libnetty_tcnative.so /usr/lib64/libnetty_tcnative.so && \
+    rm -Rf ~/.m2/repository && \
+    rm -Rf netty-tcnative && \
+    yum -y history undo last && yum -y clean all && rm -rf /var/cache/yum
