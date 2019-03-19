@@ -168,6 +168,9 @@ public class Device {
             this.connected = true;
             this.connectedCount.incrementAndGet();
         }
+
+        System.out.format("Connection established%n");
+
     }
 
     protected void connectionLost(final Throwable throwable) {
