@@ -3,12 +3,12 @@ FROM centos:7
 MAINTAINER Jens Reimann <jreimann@redhat.com>
 LABEL maintainer="Jens Reimann <jreimann@redhat.com>"
 
+ARG NETTY_TCNATIVE_VERSION=2.0.17.Final
+
 RUN yum update -y
 RUN yum install -y centos-release-scl
 RUN yum install -y java-11-openjdk java-11-openjdk-devel rh-maven35 iproute git
 RUN yum install -y lsof
-
-ARG NETTY_TCNATIVE_VERSION=2.0.17.Final
 
 ENV \
     NETTY_TCNATIVE_VERSION=${NETTY_TCNATIVE_VERSION}
@@ -27,5 +27,9 @@ RUN \
     rm -Rf netty-tcnative && \
     yum -y history undo last && yum -y clean all && rm -rf /var/cache/yum
 
-RUN yum remove "java-1.8.0-*"
+# switch to Java 11 as default
+
+RUN alternatives --set java $(readlink -f /usr/lib/jvm/java-11-openjdk/bin/java)
+ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk
+RUN echo ${JAVA_HOME}
 RUN java -version
