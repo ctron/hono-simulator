@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2018 Red Hat Inc and others.
+ * Copyright (c) 2017, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -43,27 +43,24 @@ public class OkHttpSyncDevice extends OkHttpDevice {
 
     public OkHttpSyncDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
-            final Statistics telemetryStatistics, final Statistics eventStatistics, final EventWriter eventWriter) {
-        super(executor, user, deviceId, tenant, password, client, register, payload, telemetryStatistics,
-                eventStatistics);
+            final Statistics statistics, final EventWriter eventWriter) {
+        super(executor, user, deviceId, tenant, password, client, register, payload, statistics);
 
         this.executor = executor;
     }
 
     @Override
-    protected CompletableFuture<?> doPublish(final Supplier<Call> callSupplier, final Statistics statistics)
-            throws Exception {
-
-        return CompletableFutures.runAsync(() -> performCall(callSupplier, statistics), this.executor);
+    protected CompletableFuture<?> doPublish(final Supplier<Call> callSupplier) throws Exception {
+        return CompletableFutures.runAsync(() -> performCall(callSupplier), this.executor);
     }
 
-    private void performCall(final Supplier<Call> callSupplier, final Statistics statistics) throws IOException {
+    private void performCall(final Supplier<Call> callSupplier) throws IOException {
         try (final Response response = callSupplier.get().execute()) {
             if (response.isSuccessful()) {
-                handleSuccess(statistics);
+                handleSuccess();
             } else {
                 logger.trace("Result code: {}", response.code());
-                handleFailure(toResponse(response), statistics);
+                handleFailure(toResponse(response));
             }
         }
     }

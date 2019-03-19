@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Red Hat Inc and others.
+ * Copyright (c) 2018, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -16,6 +16,7 @@ import java.io.OutputStream;
 import java.util.Arrays;
 
 import io.glutamate.lang.Environment;
+import io.vertx.core.buffer.Buffer;
 
 public final class Payload {
 
@@ -35,10 +36,12 @@ public final class Payload {
 
     private final String contentType;
     private final byte[] payload;
+    private final Buffer buffer;
 
     private Payload(final String contentType, final byte[] payload) {
         this.contentType = contentType;
         this.payload = payload;
+        this.buffer = Buffer.buffer(payload);
     }
 
     public static Payload payload() {
@@ -55,6 +58,10 @@ public final class Payload {
 
     public byte[] getBytes() {
         return this.payload;
+    }
+
+    public Buffer getBuffer() {
+        return this.buffer;
     }
 
 }

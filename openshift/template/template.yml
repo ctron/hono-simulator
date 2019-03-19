@@ -570,10 +570,11 @@ objects:
               value: "2000"
             - name: NUM_THREADS
               value: "10"
-            - name: TELEMETRY_MS
+
+            - name: PERIOD_MS
               value: "1000"
-            - name: EVENT_MS
-              value: "0"
+            - name: MESSAGE_TYPE
+              value: telemetry
 
             - name: TLS_INSECURE
               value: "false"
@@ -690,10 +691,10 @@ objects:
               value: "10"
             - name: TLS_INSECURE
               value: "false"
-            - name: TELEMETRY_MS
+            - name: PERIOD_MS
               value: "1000"
-            - name: EVENT_MS
-              value: "0"
+            - name: MESSAGE_TYPE
+              value: telemetry
 
 - kind: Service
   apiVersion: v1

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Red Hat Inc and others.
+ * Copyright (c) 2018, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -31,7 +31,7 @@ import de.dentrassi.hono.demo.common.Tls;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Response;
 import de.dentrassi.hono.simulator.http.Statistics;
-import de.dentrassi.hono.simulator.http.ThrowingFunction;
+import de.dentrassi.hono.simulator.http.ThrowingSupplier;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
@@ -127,8 +127,8 @@ public class VertxDevice extends Device {
 
     public VertxDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
-            final Statistics telemetryStatistics, final Statistics eventStatistics, final EventWriter eventWriter) {
-        super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
+            final Statistics statistics, final EventWriter eventWriter) {
+        super(user, deviceId, tenant, password, register, statistics);
 
         initialize(eventWriter);
 
@@ -166,7 +166,7 @@ public class VertxDevice extends Device {
         return createRequest(this.eventUrl);
     }
 
-    protected CompletableFuture<?> process(final Statistics statistics, final Supplier<HttpRequest<Buffer>> request)
+    protected CompletableFuture<?> process(final Supplier<HttpRequest<Buffer>> request)
             throws IOException {
 
         final CompletableFuture<?> result = new CompletableFuture<>();
@@ -178,10 +178,10 @@ public class VertxDevice extends Device {
                     final HttpResponse<Buffer> response = ar.result();
 
                     if (ar.succeeded()) {
-                        handleResponse(convertRequest(response), statistics);
+                        handleResponse(convertRequest(response));
                         result.complete(null);
                     } else {
-                        handleException(ar.cause(), statistics);
+                        handleException(ar.cause());
                         result.completeExceptionally(ar.cause());
                     }
 
@@ -214,13 +214,13 @@ public class VertxDevice extends Device {
     }
 
     @Override
-    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickTelemetryProvider() {
-        return s -> process(s, this::createTelemetryRequest);
+    protected ThrowingSupplier<CompletableFuture<?>, Exception> tickTelemetryProvider() {
+        return () -> process(this::createTelemetryRequest);
     }
 
     @Override
-    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickEventProvider() {
-        return s -> process(s, this::createEventRequest);
+    protected ThrowingSupplier<CompletableFuture<?>, Exception> tickEventProvider() {
+        return () -> process(this::createEventRequest);
     }
 
 }

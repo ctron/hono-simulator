@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2018 Red Hat Inc and others.
+ * Copyright (c) 2017, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -42,14 +42,12 @@ public class OkHttpAsyncDevice extends OkHttpDevice {
 
     public OkHttpAsyncDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
-            final Statistics telemetryStatistics, final Statistics eventStatistics, final EventWriter eventWriter) {
-        super(executor, user, deviceId, tenant, password, client, register, payload, telemetryStatistics,
-                eventStatistics);
+            final Statistics statistics, final EventWriter eventWriter) {
+        super(executor, user, deviceId, tenant, password, client, register, payload, statistics);
     }
 
     @Override
-    protected CompletableFuture<?> doPublish(final Supplier<Call> callSupplier, final Statistics statistics)
-            throws Exception {
+    protected CompletableFuture<?> doPublish(final Supplier<Call> callSupplier) throws Exception {
 
         final CompletableFuture<?> result = new CompletableFuture<>();
 
@@ -59,10 +57,10 @@ public class OkHttpAsyncDevice extends OkHttpDevice {
             public void onResponse(final Call call, final Response response) throws IOException {
                 try {
                     if (response.isSuccessful()) {
-                        handleSuccess(statistics);
+                        handleSuccess();
                     } else {
                         logger.trace("Result code: {}", response.code());
-                        handleFailure(toResponse(response), statistics);
+                        handleFailure(toResponse(response));
                     }
                     response.close();
                 } finally {
@@ -73,7 +71,7 @@ public class OkHttpAsyncDevice extends OkHttpDevice {
             @Override
             public void onFailure(final Call call, final IOException e) {
                 try {
-                    handleException(e, statistics);
+                    handleException(e);
                     logger.debug("Failed to tick", e);
                 } finally {
                     result.completeExceptionally(e);

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017 Red Hat Inc and others.
+ * Copyright (c) 2017, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -47,24 +47,21 @@ public abstract class Device {
 
     protected final String tenant;
 
-    protected final Statistics telemetryStatistics;
-
-    protected final Statistics eventStatistics;
+    protected final Statistics statistics;
 
     protected final String method;
 
     protected final boolean enabled;
 
     public Device(final String user, final String deviceId, final String tenant, final String password,
-            final Register register, final Statistics telemetryStatistics, final Statistics eventStatistics) {
+            final Register register, final Statistics statistics) {
 
         this.register = register;
         this.user = user;
         this.deviceId = deviceId;
         this.tenant = tenant;
         this.password = password;
-        this.telemetryStatistics = telemetryStatistics;
-        this.eventStatistics = eventStatistics;
+        this.statistics = statistics;
 
         this.auth = Credentials.basic(user + "@" + tenant, password);
 
@@ -127,26 +124,25 @@ public abstract class Device {
         }
     }
 
-    protected abstract ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickTelemetryProvider();
+    protected abstract ThrowingSupplier<CompletableFuture<?>, Exception> tickTelemetryProvider();
 
-    protected abstract ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickEventProvider();
+    protected abstract ThrowingSupplier<CompletableFuture<?>, Exception> tickEventProvider();
 
     public CompletableFuture<?> tickTelemetry() {
-        return tick(this.telemetryStatistics, () -> tickTelemetryProvider().apply(this.telemetryStatistics));
+        return tick(() -> tickTelemetryProvider().get());
     }
 
     public CompletableFuture<?> tickEvent() {
-        return tick(this.eventStatistics, () -> tickEventProvider().apply(this.eventStatistics));
+        return tick(() -> tickEventProvider().get());
     }
 
-    protected CompletableFuture<?> tick(final Statistics statistics,
-            final ThrowingSupplier<CompletableFuture<?>, Exception> runnable) {
+    protected CompletableFuture<?> tick(final ThrowingSupplier<CompletableFuture<?>, Exception> runnable) {
 
         if (!this.enabled) {
             return CompletableFuture.completedFuture(null);
         }
 
-        statistics.scheduled();
+        this.statistics.scheduled();
         final Instant start = Instant.now();
 
         final CompletableFuture<?> future;
@@ -154,7 +150,7 @@ public abstract class Device {
         try {
             future = runnable.get();
         } catch (final Exception e) {
-            statistics.failed();
+            this.statistics.failed();
             return CompletableFuture.completedFuture(null);
         }
 
@@ -166,22 +162,22 @@ public abstract class Device {
             }
 
             final Duration dur = Duration.between(start, Instant.now());
-            statistics.duration(dur);
+            this.statistics.duration(dur);
         });
     }
 
-    protected void handleSuccess(final Statistics statistics) {
-        statistics.success();
+    protected void handleSuccess() {
+        this.statistics.success();
     }
 
-    protected void handleException(final Throwable e, final Statistics statistics) {
-        statistics.failed();
-        statistics.error(0);
+    protected void handleException(final Throwable e) {
+        this.statistics.failed();
+        this.statistics.error(0);
     }
 
-    protected void handleFailure(final Response response, final Statistics statistics) {
-        statistics.failed();
-        statistics.error(response.code());
+    protected void handleFailure(final Response response) {
+        this.statistics.failed();
+        this.statistics.error(response.code());
 
         if (logger.isDebugEnabled()) {
             logger.debug("handleFailure - code: {}, body: {}", response.code(), response.bodyAsString());
@@ -201,12 +197,12 @@ public abstract class Device {
         }
     }
 
-    protected void handleResponse(final Response response, final Statistics statistics) {
+    protected void handleResponse(final Response response) {
         final int code = response.code();
         if (code < 200 || code > 299) {
-            handleFailure(response, statistics);
+            handleFailure(response);
         } else {
-            handleSuccess(statistics);
+            handleSuccess();
         }
 
     }

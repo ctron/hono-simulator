@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Red Hat Inc and others.
+ * Copyright (c) 2018, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -23,6 +23,5 @@ public interface DeviceProvider {
     String getName();
 
     Device createDevice(Executor executor, String user, String deviceId, String tenant, String password,
-            OkHttpClient client, Register register, Payload payload, Statistics telemetryStatistics,
-            Statistics eventStatistics, EventWriter eventWriter);
+            OkHttpClient client, Register register, Payload payload, Statistics statistics, EventWriter eventWriter);
 }

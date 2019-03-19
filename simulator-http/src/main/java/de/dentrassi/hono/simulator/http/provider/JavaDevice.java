@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2018 Red Hat Inc and others.
+ * Copyright (c) 2017, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -30,7 +30,7 @@ import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Response;
 import de.dentrassi.hono.simulator.http.Statistics;
-import de.dentrassi.hono.simulator.http.ThrowingFunction;
+import de.dentrassi.hono.simulator.http.ThrowingSupplier;
 import okhttp3.OkHttpClient;
 
 public class JavaDevice extends Device {
@@ -51,8 +51,8 @@ public class JavaDevice extends Device {
 
     public JavaDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
-            final Statistics telemetryStatistics, final Statistics eventStatistics, final EventWriter eventWriter) {
-        super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
+            final Statistics statistics, final EventWriter eventWriter) {
+        super(user, deviceId, tenant, password, register, statistics);
         this.executor = executor;
         this.payload = payload;
 
@@ -60,7 +60,7 @@ public class JavaDevice extends Device {
         this.eventUrl = createUrl("event").url();
     }
 
-    protected void process(final Statistics statistics, final URL url) throws IOException {
+    protected void process(final URL url) throws IOException {
 
         final HttpURLConnection con = (HttpURLConnection) url.openConnection();
         try {
@@ -101,7 +101,7 @@ public class JavaDevice extends Device {
                 public String bodyAsString(final Charset charset) {
                     return charset.decode(ByteBuffer.wrap(buffer)).toString();
                 }
-            }, statistics);
+            });
 
         } finally {
             con.disconnect();
@@ -109,13 +109,13 @@ public class JavaDevice extends Device {
     }
 
     @Override
-    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickTelemetryProvider() {
-        return s -> runAsync(() -> process(s, this.telemetryUrl), this.executor);
+    protected ThrowingSupplier<CompletableFuture<?>, Exception> tickTelemetryProvider() {
+        return () -> runAsync(() -> process(this.telemetryUrl), this.executor);
     }
 
     @Override
-    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickEventProvider() {
-        return s -> runAsync(() -> process(s, this.eventUrl), this.executor);
+    protected ThrowingSupplier<CompletableFuture<?>, Exception> tickEventProvider() {
+        return () -> runAsync(() -> process(this.eventUrl), this.executor);
     }
 
 }

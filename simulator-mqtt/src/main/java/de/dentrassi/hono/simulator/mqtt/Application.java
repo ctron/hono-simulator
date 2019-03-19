@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2018 Red Hat Inc and others.
+ * Copyright (c) 2017, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -10,7 +10,6 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.mqtt;
 
-import static io.glutamate.lang.Environment.getAs;
 import static io.micrometer.core.instrument.Tag.of;
 
 import java.util.Random;
@@ -21,6 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import de.dentrassi.hono.demo.common.AppRuntime;
+import de.dentrassi.hono.demo.common.ProducerConfig;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.demo.common.Tenant;
 import de.dentrassi.hono.demo.common.Tls;
@@ -31,8 +31,7 @@ import okhttp3.OkHttpClient;
 
 public class Application {
 
-    private static final int TELEMETRY_MS = getAs("TELEMETRY_MS", 0, Integer::parseInt);
-    private static final int EVENT_MS = getAs("EVENT_MS", 0, Integer::parseInt);
+    private static final ProducerConfig config = ProducerConfig.fromEnv();
 
     public static <T> T envOrElse(final String name, final Function<String, T> converter, final T defaultValue) {
         final String value = System.getenv(name);
@@ -81,8 +80,7 @@ public class Application {
 
         final MeterRegistry metrics = runtime.getRegistry();
         final AtomicLong connected = metrics.gauge("connections", commonTags, new AtomicLong());
-        final Statistics telemetryStats = new Statistics(metrics, commonTags.and(of("type", "telemetry")));
-        final Statistics eventStats = new Statistics(metrics, commonTags.and(of("type", "event")));
+        final Statistics stats = new Statistics(metrics, commonTags.and(config.getType().asTag()));
 
         try {
 
@@ -92,16 +90,23 @@ public class Application {
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
                 final Device device = new Device(runtime.getVertx(), username, deviceId, Tenant.TENANT, "hono-secret",
-                        register, connected);
+                        register, connected, stats);
 
-                if (TELEMETRY_MS > 0) {
-                    executor.scheduleAtFixedRate(() -> device.tickTelemetry(telemetryStats), r.nextInt(TELEMETRY_MS),
-                            TELEMETRY_MS, TimeUnit.MILLISECONDS);
+                final Runnable ticker;
+
+                switch (config.getType()) {
+                case EVENT:
+                    ticker = () -> device.tickEvent();
+                    break;
+                default:
+                    ticker = () -> device.tickTelemetry();
+                    break;
                 }
-                if (EVENT_MS > 0) {
-                    executor.scheduleAtFixedRate(() -> device.tickEvent(eventStats), r.nextInt(EVENT_MS),
-                            EVENT_MS, TimeUnit.MILLISECONDS);
-                }
+
+                executor.scheduleAtFixedRate(ticker,
+                        r.nextInt((int) config.getPeriod().toMillis()), config.getPeriod().toMillis(),
+                        TimeUnit.MILLISECONDS);
+
             }
 
             Thread.sleep(Long.MAX_VALUE);

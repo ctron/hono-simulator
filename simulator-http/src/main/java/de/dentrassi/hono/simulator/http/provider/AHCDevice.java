@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Red Hat Inc and others.
+ * Copyright (c) 2018, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -30,7 +30,7 @@ import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.Response;
 import de.dentrassi.hono.simulator.http.Statistics;
-import de.dentrassi.hono.simulator.http.ThrowingFunction;
+import de.dentrassi.hono.simulator.http.ThrowingSupplier;
 import io.netty.buffer.PooledByteBufAllocator;
 import okhttp3.OkHttpClient;
 
@@ -71,8 +71,8 @@ public class AHCDevice extends Device {
 
     public AHCDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
-            final Statistics telemetryStatistics, final Statistics eventStatistics, final EventWriter eventWriter) {
-        super(user, deviceId, tenant, password, register, telemetryStatistics, eventStatistics);
+            final Statistics statistics, final EventWriter eventWriter) {
+        super(user, deviceId, tenant, password, register, statistics);
 
         initialize();
 
@@ -101,7 +101,7 @@ public class AHCDevice extends Device {
         this.eventRequest.setBody(payload.getBytes());
     }
 
-    protected CompletableFuture<?> process(final Statistics statistics, final RequestBuilder request)
+    protected CompletableFuture<?> process(final RequestBuilder request)
             throws IOException {
 
         return client
@@ -110,7 +110,7 @@ public class AHCDevice extends Device {
                 .whenComplete((response, ex) -> {
 
                     if (ex != null) {
-                        handleException(ex, statistics);
+                        handleException(ex);
                     } else {
                         handleResponse(new Response() {
 
@@ -123,19 +123,19 @@ public class AHCDevice extends Device {
                             public String bodyAsString(final Charset charset) {
                                 return response.getResponseBody(charset);
                             }
-                        }, statistics);
+                        });
                     }
                 });
     }
 
     @Override
-    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickTelemetryProvider() {
-        return s -> process(s, this.telemetryRequest);
+    protected ThrowingSupplier<CompletableFuture<?>, Exception> tickTelemetryProvider() {
+        return () -> process(this.telemetryRequest);
     }
 
     @Override
-    protected ThrowingFunction<Statistics, CompletableFuture<?>, Exception> tickEventProvider() {
-        return s -> process(s, this.telemetryRequest);
+    protected ThrowingSupplier<CompletableFuture<?>, Exception> tickEventProvider() {
+        return () -> process(this.telemetryRequest);
     }
 
 }

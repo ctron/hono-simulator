@@ -15,13 +15,13 @@ import static de.dentrassi.hono.demo.common.Register.shouldRegister;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
+import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.demo.common.Tls;
 import io.glutamate.lang.Environment;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mqtt.MqttConnectionException;
@@ -30,7 +30,7 @@ public class Device {
 
     private final MqttClient client;
 
-    private final Buffer payload;
+    private final Payload payload;
 
     private final Vertx vertx;
 
@@ -57,8 +57,10 @@ public class Device {
 
     private final AtomicLong connectedCount;
 
+    private final Statistics stats;
+
     public Device(final Vertx vertx, final String username, final String deviceId, final String tenant,
-            final String password, final Register register, final AtomicLong connectedCount) {
+            final String password, final Register register, final AtomicLong connectedCount, final Statistics stats) {
 
         this.vertx = vertx;
         this.register = register;
@@ -68,8 +70,9 @@ public class Device {
         this.password = password;
 
         this.connectedCount = connectedCount;
+        this.stats = stats;
 
-        this.payload = Buffer.factory.buffer("{foo: 42}");
+        this.payload = Payload.payload();
 
         final MqttClientOptions options = new MqttClientOptions();
 
@@ -123,28 +126,28 @@ public class Device {
         return delay;
     }
 
-    public void tickTelemetry(final Statistics stats) {
+    public void tickTelemetry() {
         this.vertx.runOnContext(v -> {
-            doPublish(stats, "telementry", MqttQoS.AT_MOST_ONCE);
+            doPublish("telementry", MqttQoS.AT_MOST_ONCE);
         });
     }
 
-    public void tickEvent(final Statistics stats) {
+    public void tickEvent() {
         this.vertx.runOnContext(v -> {
-            doPublish(stats, "event", MqttQoS.AT_LEAST_ONCE);
+            doPublish("event", MqttQoS.AT_LEAST_ONCE);
         });
     }
 
 
-    private void doPublish(final Statistics stats, final String topic, final MqttQoS qos) {
+    private void doPublish( final String topic, final MqttQoS qos) {
 
-        stats.ticked();
+        stats.scheduled();
 
         if (!this.client.isConnected()) {
             return;
         }
 
-        this.client.publish(topic, this.payload, qos, false, false);
+        this.client.publish(topic, this.payload.getBuffer(), qos, false, false);
 
         switch (qos) {
         case AT_MOST_ONCE:
@@ -158,6 +161,7 @@ public class Device {
     }
 
     private void publishComplete(final Integer packetId) {
+        stats.sent();
     }
 
     private void connectionEstablished() {

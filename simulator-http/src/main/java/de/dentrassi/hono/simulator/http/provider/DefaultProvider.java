@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2018 Red Hat Inc and others.
+ * Copyright (c) 2017, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -26,8 +26,8 @@ public class DefaultProvider implements DeviceProvider {
     public interface Constructor {
 
         Device construct(Executor executor, String user, String deviceId, String tenant, String password,
-                OkHttpClient client, Register register, Payload payload, Statistics telemetryStatistics,
-                Statistics eventStatistics, EventWriter eventWriter);
+                OkHttpClient client, Register register, Payload payload, Statistics statistics,
+                EventWriter eventWriter);
     }
 
     private final String name;
@@ -46,9 +46,9 @@ public class DefaultProvider implements DeviceProvider {
     @Override
     public Device createDevice(final Executor executor, final String user, final String deviceId, final String tenant,
             final String password, final OkHttpClient client, final Register register, final Payload payload,
-            final Statistics telemetryStatistics, final Statistics eventStatistics, final EventWriter eventWriter) {
+            final Statistics statistics, final EventWriter eventWriter) {
         return this.constructor.construct(executor, user, deviceId, tenant, password, client, register, payload,
-                telemetryStatistics, eventStatistics, eventWriter);
+                statistics, eventWriter);
     }
 
 }

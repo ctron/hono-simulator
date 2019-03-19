@@ -29,7 +29,7 @@ public class Statistics {
         this.sent.increment();
     }
 
-    public void ticked() {
+    public void scheduled() {
         this.ticked.increment();
     }
 }
