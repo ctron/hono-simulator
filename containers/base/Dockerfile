@@ -8,8 +8,10 @@ RUN yum install -y centos-release-scl
 RUN yum install -y java-11-openjdk java-11-openjdk-devel rh-maven35 iproute git
 RUN yum install -y lsof
 
+ARG NETTY_TCNATIVE_VERSION=2.0.17.Final
+
 ENV \
-    NETTY_TCNATIVE_VERSION=2.0.10.Final
+    NETTY_TCNATIVE_VERSION=${NETTY_TCNATIVE_VERSION}
 
 RUN yum install -y apr
 
