@@ -3,7 +3,7 @@ FROM centos:7
 MAINTAINER Jens Reimann <jreimann@redhat.com>
 LABEL maintainer="Jens Reimann <jreimann@redhat.com>"
 
-ARG NETTY_TCNATIVE_VERSION=2.0.17.Final
+ARG NETTY_TCNATIVE_VERSION=2.0.22.Final
 
 RUN yum update -y
 RUN yum install -y centos-release-scl
