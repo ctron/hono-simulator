@@ -82,8 +82,6 @@ public class Device {
         options.setAutoKeepAlive(true);
         options.setKeepAliveTimeSeconds(10);
 
-        Environment.consumeAs("HONO_MQTT_SSL", Boolean::parseBoolean, options::setSsl);
-
         if (Tls.insecure()) {
             options.setTrustAll(true);
         } else {
