@@ -1,3 +1,14 @@
+/*******************************************************************************
+ * Copyright (c) 2019 Red Hat Inc and others.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *     Jens Reimann - initial API and implementation
+ *******************************************************************************/
+
 package de.dentrassi.hono.demo.common;
 
 import java.util.EnumSet;
@@ -48,14 +59,14 @@ public class AppRuntime implements AutoCloseable {
 
         final Router router = Router.router(this.vertx);
 
-        vertx.createHttpServer()
+        this.vertx.createHttpServer()
                 .requestHandler(router)
                 .listen(8081);
 
         router.route("/metrics").handler(PrometheusScrapingHandler.create());
 
         this.healthCheckHandler = HealthCheckHandler.create(this.vertx);
-        router.get("/health").handler(healthCheckHandler);
+        router.get("/health").handler(this.healthCheckHandler);
 
         this.registry = BackendRegistries.getDefaultNow();
     }
