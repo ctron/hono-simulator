@@ -107,7 +107,7 @@ public class Device {
 
             this.client.connect(HONO_MQTT_PORT, HONO_MQTT_HOST, HONO_MQTT_HOST, connected -> {
                 if (connected.failed()) {
-                    connectionLost(connected.cause());
+                    connectionFailed(connected.cause());
                 } else {
                     connectionEstablished();
                 }
@@ -173,13 +173,8 @@ public class Device {
 
     }
 
-    protected void connectionLost(final Throwable throwable) {
-        if (this.connected) {
-            this.connected = false;
-            this.connectedCount.decrementAndGet();
-        }
-
-        System.out.format("Connection lost: %s%n", throwable != null ? throwable.getMessage() : "<null>");
+    protected void connectionFailed(final Throwable throwable) {
+        System.out.format("Connection failed: %s%n", throwable != null ? throwable.getMessage() : "<null>");
 
         if (throwable instanceof MqttConnectionException) {
             final MqttConnectReturnCode code = ((MqttConnectionException) throwable).code();
@@ -199,6 +194,13 @@ public class Device {
             if (throwable != null) {
                 throwable.printStackTrace();
             }
+        }
+    }
+
+    protected void connectionLost(final Throwable throwable) {
+        if (this.connected) {
+            this.connected = false;
+            this.connectedCount.decrementAndGet();
         }
 
         startConnect();

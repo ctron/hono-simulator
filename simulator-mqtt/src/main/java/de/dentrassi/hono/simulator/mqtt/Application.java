@@ -99,6 +99,8 @@ public class Application {
                 final String username = String.format("user-%s-%s", deviceIdPrefix, i);
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
+                System.out.format("New device - user: %s, clientId: %s%n", username, deviceId);
+
                 final Device device = new Device(runtime.getVertx(), username, deviceId, Tenant.TENANT, "hono-secret",
                         register, connected, stats);
 
