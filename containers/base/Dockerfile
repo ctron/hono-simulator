@@ -29,7 +29,11 @@ RUN \
 
 # switch to Java 11 as default
 
-RUN alternatives --set java $(readlink -f /usr/lib/jvm/java-11-openjdk/bin/java)
+RUN \
+    alternatives --set java $(readlink -f /usr/lib/jvm/java-11-openjdk/bin/java) && \
+    alternatives --set javac $(readlink -f /usr/lib/jvm/java-11-openjdk/bin/javac) && \
+    true
+
 ENV JAVA_HOME=/usr/lib/jvm/java-11-openjdk
 RUN echo ${JAVA_HOME}
 RUN java -version
