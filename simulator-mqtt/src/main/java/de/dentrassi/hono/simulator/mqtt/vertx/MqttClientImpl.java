@@ -192,7 +192,7 @@ public class MqttClientImpl implements MqttClient {
         this.ctx = Vertx.currentContext();
 
         soi.messageHandler(msg -> this.handleMessage(soi.channelHandlerContext(), msg));
-        soi.closeHandler(v -> handleClosed());
+                soi.closeHandler(v -> handleClosed());
 
         // an exception at connection level
         soi.exceptionHandler(this::handleException);
@@ -244,6 +244,8 @@ public class MqttClientImpl implements MqttClient {
    */
   @Override
   public MqttClient disconnect(final Handler<AsyncResult<Void>> disconnectHandler) {
+
+        log.info("Request to close connection: " + this.connection.channelHandlerContext());
 
     final MqttFixedHeader fixedHeader = new MqttFixedHeader(
       MqttMessageType.DISCONNECT,
@@ -656,7 +658,7 @@ public class MqttClientImpl implements MqttClient {
       this.options.getKeepAliveTimeSeconds() != 0) {
 
       pipeline.addBefore("handler", "idle",
-        new IdleStateHandler(0, this.options.getKeepAliveTimeSeconds(), 0));
+                    new IdleStateHandler(this.options.getKeepAliveTimeSeconds(), 0, 0));
       pipeline.addBefore("handler", "keepAliveHandler", new ChannelDuplexHandler() {
 
         @Override
@@ -664,8 +666,9 @@ public class MqttClientImpl implements MqttClient {
 
           if (evt instanceof IdleStateEvent) {
             final IdleStateEvent e = (IdleStateEvent) evt;
-            if (e.state() == IdleState.WRITER_IDLE) {
-              ping();
+            if (e.state() == IdleState.READER_IDLE) {
+                log.info("Sending ping: " + ctx);
+                ping();
             }
           }
         }
@@ -673,11 +676,11 @@ public class MqttClientImpl implements MqttClient {
     }
   }
 
-  /**
-   * Update and return the next message identifier
-   *
-   * @return message identifier
-   */
+    /**
+     * Update and return the next message identifier
+     *
+     * @return message identifier
+     */
   private synchronized int nextMessageId() {
 
     // if 0 or MAX_MESSAGE_ID, it becomes 1 (first valid messageId)
@@ -694,10 +697,11 @@ public class MqttClientImpl implements MqttClient {
     this.connection().writeMessage(mqttMessage);
   }
 
-  /**
-   * Used for calling the close handler when the remote MQTT server closes the connection
-   */
-  private void handleClosed() {
+    /**
+     * Used for calling the close handler when the remote MQTT server closes the connection
+     */
+    private void handleClosed() {
+        log.info("Connection closed: " + this.connection.channelHandlerContext());
     synchronized (this) {
       final boolean isConnected = this.isConnected;
       this.isConnected = false;
@@ -815,7 +819,7 @@ public class MqttClientImpl implements MqttClient {
    * Used for calling the pingresp handler when the server replies to the ping
    */
   private void handlePingresp() {
-
+        log.debug("Received pingresp: " + this.connection.channelHandlerContext());
     final Handler<Void> handler = pingResponseHandler();
     if (handler != null) {
       handler.handle(null);

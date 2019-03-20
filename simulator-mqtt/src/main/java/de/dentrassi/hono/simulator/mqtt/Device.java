@@ -79,8 +79,8 @@ public class Device {
         options.setCleanSession(true);
         options.setConnectTimeout(10_000);
         options.setClientId(deviceId);
-        options.setKeepAliveTimeSeconds(10);
         options.setAutoKeepAlive(true);
+        options.setKeepAliveTimeSeconds(10);
 
         Environment.consumeAs("HONO_MQTT_SSL", Boolean::parseBoolean, options::setSsl);
 
