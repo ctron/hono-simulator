@@ -74,8 +74,10 @@ public class Application {
         System.out.println("Vertx Native: " + runtime.getVertx().isNativeTransportEnabled());
 
         System.out.format("OpenSSL - available: %s -> %s%n", OpenSsl.isAvailable(), OpenSsl.versionString());
-        System.out.println("Key Manager: " + OpenSsl.supportsKeyManagerFactory());
-        System.out.println("Host name validation: " + OpenSsl.supportsHostnameValidation());
+        if (OpenSsl.isAvailable()) {
+            System.out.println("    Key Manager: " + OpenSsl.supportsKeyManagerFactory());
+            System.out.println("    Host name validation: " + OpenSsl.supportsHostnameValidation());
+        }
 
         System.out.format("MQTT Endpoint: %s:%s%n", Device.HONO_MQTT_HOST, Device.HONO_MQTT_PORT);
 
