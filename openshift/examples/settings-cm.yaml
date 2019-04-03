@@ -1,9 +1,0 @@
-kind: ConfigMap
-apiVersion: v1
-metadata:
-  name: enmasse1
-data:
-  endpoint.host: messaging-v2i2kfsult.enmasse-infra.svc
-  endpoint.port: "5671"
-  httpAdapter.url: https://iot-http-adapter-enmasse-infra.<your-cluster-domain>
-  deviceRegistry.url: https://device-registry-enmasse-infra.<your-cluster-domain>

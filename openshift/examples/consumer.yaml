@@ -1,9 +1,0 @@
-kind: SimulatorConsumer
-apiVersion: iot.dentrassi.de/v1alpha1
-metadata:
-  name: consumer1
-spec:
-  endpointSettings: enmasse1
-  simulator: sim
-  tenant: myapp.iot
-  type: telemetry
