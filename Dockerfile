@@ -1,4 +1,4 @@
-FROM ctron/iot-hono-simulator-base:develop
+FROM ctron/iot-hono-simulator-base:0.1
 
 MAINTAINER Jens Reimann <jreimann@redhat.com>
 LABEL maintainer="Jens Reimann <jreimann@redhat.com>"
