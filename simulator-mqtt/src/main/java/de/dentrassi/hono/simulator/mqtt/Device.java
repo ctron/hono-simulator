@@ -195,9 +195,13 @@ public class Device {
                 throwable.printStackTrace();
             }
         }
+
+        startConnect();
     }
 
     protected void connectionLost(final Throwable throwable) {
+        System.out.format("Connection lost: %s%n", throwable != null ? throwable.getMessage() : "<null>");
+
         if (this.connected) {
             this.connected = false;
             this.connectedCount.decrementAndGet();
