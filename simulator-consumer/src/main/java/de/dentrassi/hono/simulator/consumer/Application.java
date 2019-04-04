@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2018 Red Hat Inc and others.
+ * Copyright (c) 2017, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -11,13 +11,13 @@
 package de.dentrassi.hono.simulator.consumer;
 
 import static io.glutamate.lang.Environment.is;
-import static io.vertx.core.CompositeFuture.join;
 import static java.lang.System.getenv;
 import static java.util.Optional.ofNullable;
 
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.qpid.proton.message.Message;
 import org.eclipse.hono.client.HonoClient;
 import org.eclipse.hono.client.MessageConsumer;
 import org.eclipse.hono.config.ClientConfigProperties;
@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 import de.dentrassi.hono.demo.common.AppRuntime;
 import de.dentrassi.hono.demo.common.DeadlockDetector;
 import de.dentrassi.hono.demo.common.Tenant;
+import de.dentrassi.hono.demo.common.Tls;
+import de.dentrassi.hono.demo.common.Type;
 import io.glutamate.lang.Environment;
 import io.micrometer.core.instrument.Tags;
 import io.netty.handler.ssl.OpenSsl;
@@ -48,37 +50,15 @@ public class Application {
     private final CountDownLatch latch;
     private final String tenant;
 
-    private final Consumer telemetryConsumer;
-    private final Consumer eventConsumer;
+    private final Consumer consumer;
 
-    private final boolean consumeTelemetry;
-
-    private final boolean consumeEvent;
+    private final Type type;
 
     private static final long DEFAULT_CONNECT_TIMEOUT_MILLIS = 5_000;
 
     public static void main(final String[] args) throws Exception {
 
-        final boolean consumeTelemetry;
-        final boolean consumeEvent;
-        final String type = Environment.get("CONSUMING").orElse("");
-        switch (type) {
-        case "telemetry":
-            consumeTelemetry = true;
-            consumeEvent = false;
-            break;
-        case "event":
-            consumeTelemetry = false;
-            consumeEvent = true;
-            break;
-        case "":
-            consumeTelemetry = true;
-            consumeEvent = true;
-            break;
-        default:
-            System.err.println("Invalid consumer type (telemetry, event, <empty>): " + type);
-            return;
-        }
+        final var type = Type.fromEnv();
 
         try (final DeadlockDetector detector = new DeadlockDetector()) {
 
@@ -89,7 +69,7 @@ public class Application {
                     getenv("HONO_USER"),
                     getenv("HONO_PASSWORD"),
                     ofNullable(getenv("HONO_TRUSTED_CERTS")),
-                    consumeTelemetry, consumeEvent
+                    type
                     );
 
             try {
@@ -112,16 +92,15 @@ public class Application {
     }
 
     public Application(final String tenant, final String host, final int port, final String user, final String password,
-            final Optional<String> trustedCerts, final boolean consumeTelemetry, final boolean consumeEvent) {
+            final Optional<String> trustedCerts, final Type type) {
 
         System.out.format("Hono Consumer - Server: %s:%s%n", host, port);
 
         this.tenant = tenant;
-        this.consumeTelemetry = consumeTelemetry;
-        this.consumeEvent = consumeEvent;
+        this.type = type;
 
         System.out.format("    Tenant: %s%n", this.tenant);
-        System.out.format("    Consuming - telemetry: %s, events: %s%n", consumeTelemetry, consumeEvent);
+        System.out.format("    Consuming: %s%n", this.type);
 
         this.runtime = new AppRuntime();
 
@@ -137,7 +116,7 @@ public class Application {
         config.setUsername(user);
         config.setPassword(password);
 
-        if (System.getenv("DISABLE_TLS") == null) {
+        if (!Tls.disabled()) {
             config.setTlsEnabled(true);
             config.setHostnameVerificationRequired(false);
             System.out.println("TLS enabled");
@@ -158,12 +137,10 @@ public class Application {
         this.latch = new CountDownLatch(1);
 
         final Tags commonTags = Tags
-                .of("tenant", this.tenant);
+                .of("tenant", this.tenant)
+                .and(type.asTag());
 
-        this.telemetryConsumer = new Consumer(
-                runtime.getRegistry().counter("messages.received", commonTags.and("type", "telemetry")));
-        this.eventConsumer = new Consumer(
-                runtime.getRegistry().counter("messages.received", commonTags.and("type", "event")));
+        this.consumer = new Consumer(this.runtime.getRegistry().counter("messages.received", commonTags));
 
     }
 
@@ -203,46 +180,43 @@ public class Application {
         this.latch.await();
     }
 
-    private Future<MessageConsumer> createTelemetryConsumer(final HonoClient connectedClient) {
+    @FunctionalInterface
+    interface ConsumerProvider {
 
-        if (!this.consumeTelemetry) {
-            return Future.succeededFuture();
-        }
+        Future<MessageConsumer> createConsumer(String tenantId, java.util.function.Consumer<Message> consumer,
+                Handler<Void> closeHandler);
+    }
 
-        return connectedClient.createTelemetryConsumer(this.tenant,
-                this.telemetryConsumer::handleMessage, closeHandler -> {
+    private Future<MessageConsumer> createConsumer(final HonoClient connectedClient) {
 
-                    logger.info("close handler of telemetry consumer is called");
+        final var provider = getConsumerProvider(connectedClient);
 
-                    System.err.println("Lost TelemetryConsumer link, restarting …");
+        return provider.createConsumer(this.tenant,
+                this.consumer::handleMessage, closeHandler -> {
+
+                    logger.info("close handler of consumer is called");
+
+                    System.err.println("Lost Consumer link, restarting …");
                     System.exit(-1);
 
                     this.runtime.getVertx().setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
-                        logger.info("attempting to re-open the TelemetryConsumer link ...");
-                        createTelemetryConsumer(connectedClient);
+                        logger.info("attempting to re-open the Consumer link ...");
+                        createConsumer(connectedClient);
                     });
                 });
     }
 
-    private Future<MessageConsumer> createEventConsumer(final HonoClient connectedClient) {
-
-        if (!this.consumeEvent) {
-            return Future.succeededFuture();
+    private ConsumerProvider getConsumerProvider(final HonoClient connectedClient) {
+        final ConsumerProvider provider;
+        switch (this.type) {
+        case EVENT:
+            provider = connectedClient::createEventConsumer;
+            break;
+        default:
+            provider = connectedClient::createTelemetryConsumer;
+            break;
         }
-
-        return connectedClient.createEventConsumer(this.tenant,
-                this.eventConsumer::handleMessage, closeHandler -> {
-
-                    logger.info("close handler of event consumer is called");
-
-                    System.err.println("Lost EventConsumer link, restarting …");
-                    System.exit(-1);
-
-                    this.runtime.getVertx().setTimer(DEFAULT_CONNECT_TIMEOUT_MILLIS, reconnect -> {
-                        logger.info("attempting to re-open the EventConsumer link ...");
-                        createEventConsumer(connectedClient);
-                    });
-                });
+        return provider;
     }
 
     private void onDisconnect(final ProtonConnection con) {
@@ -268,9 +242,7 @@ public class Application {
 
                 .compose(connectedClient -> {
                     logger.info("connected to Hono");
-                    return join(
-                            createTelemetryConsumer(connectedClient),
-                            createEventConsumer(connectedClient));
+                    return createConsumer(connectedClient);
                 });
 
     }

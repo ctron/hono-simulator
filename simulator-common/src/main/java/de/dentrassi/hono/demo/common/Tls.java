@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2018 Red Hat Inc and others.
+ * Copyright (c) 2018, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -30,6 +30,10 @@ public final class Tls {
 
     public static boolean insecure() {
         return Environment.getAs("TLS_INSECURE", Boolean.FALSE, Boolean::parseBoolean);
+    }
+
+    public static boolean disabled() {
+        return Environment.getAs("DISABLE_TLS", Boolean.FALSE, Boolean::parseBoolean);
     }
 
     public static void makeOkHttpInsecure(final Builder builder) {
