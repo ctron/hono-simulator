@@ -59,6 +59,8 @@ public class Device {
 
     private final Statistics stats;
 
+    private long connectTimer = -1;
+
     public Device(final Vertx vertx, final String username, final String deviceId, final String tenant,
             final String password, final Register register, final AtomicLong connectedCount, final Statistics stats) {
 
@@ -98,20 +100,27 @@ public class Device {
         this.client.publishCompletionHandler(this::publishComplete);
         this.client.closeHandler(v -> connectionLost(null));
 
-        startConnect();
+        scheduleConnect();
+    }
+
+    private void scheduleConnect() {
+        if (connectTimer >= 0) {
+            // already scheduled
+            return;
+        }
+        this.connectTimer = this.vertx.setTimer(getConnectDelay(), v -> startConnect());
     }
 
     private void startConnect() {
 
-        this.vertx.setTimer(getConnectDelay(), v -> {
+        this.connectTimer = -1;
 
-            this.client.connect(HONO_MQTT_PORT, HONO_MQTT_HOST, HONO_MQTT_HOST, connected -> {
-                if (connected.failed()) {
-                    connectionFailed(connected.cause());
-                } else {
-                    connectionEstablished();
-                }
-            });
+        this.client.connect(HONO_MQTT_PORT, HONO_MQTT_HOST, HONO_MQTT_HOST, connected -> {
+            if (connected.failed()) {
+                connectionFailed(connected.cause());
+            } else {
+                connectionEstablished();
+            }
         });
 
     }
@@ -196,7 +205,7 @@ public class Device {
             }
         }
 
-        startConnect();
+        scheduleConnect();
     }
 
     protected void connectionLost(final Throwable throwable) {
@@ -207,7 +216,7 @@ public class Device {
             this.connectedCount.decrementAndGet();
         }
 
-        startConnect();
+        scheduleConnect();
     }
 
     private void register() {
