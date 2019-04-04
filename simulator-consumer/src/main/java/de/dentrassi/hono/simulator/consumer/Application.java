@@ -162,6 +162,7 @@ public class Application {
         final ProtonClientOptions options = new ProtonClientOptions();
 
         is("WITH_OPENSSL", () -> {
+            System.out.println("Using OpenSSL for proton");
             options.setSslEngineOptions(new OpenSSLEngineOptions());
         });
 

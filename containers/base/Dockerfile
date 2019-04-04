@@ -11,7 +11,8 @@ RUN yum install -y java-11-openjdk java-11-openjdk-devel rh-maven35 iproute git
 RUN yum install -y lsof
 
 ENV \
-    NETTY_TCNATIVE_VERSION=${NETTY_TCNATIVE_VERSION}
+    NETTY_TCNATIVE_VERSION=${NETTY_TCNATIVE_VERSION} \
+    WITH_OPENSSL=true
 
 RUN yum install -y apr
 

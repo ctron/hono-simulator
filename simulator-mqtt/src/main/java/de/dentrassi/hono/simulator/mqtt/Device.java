@@ -11,6 +11,7 @@
 package de.dentrassi.hono.simulator.mqtt;
 
 import static de.dentrassi.hono.demo.common.Register.shouldRegister;
+import static io.glutamate.lang.Environment.is;
 
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
@@ -23,6 +24,7 @@ import io.glutamate.lang.Environment;
 import io.netty.handler.codec.mqtt.MqttConnectReturnCode;
 import io.netty.handler.codec.mqtt.MqttQoS;
 import io.vertx.core.Vertx;
+import io.vertx.core.net.OpenSSLEngineOptions;
 import io.vertx.mqtt.MqttClient;
 import io.vertx.mqtt.MqttClientOptions;
 import io.vertx.mqtt.MqttConnectionException;
@@ -94,6 +96,11 @@ public class Device {
         options.setSsl(!Environment.getAs("DISABLE_TLS", false, Boolean::parseBoolean));
         options.setUsername(username + "@" + tenant);
         options.setPassword(password);
+
+        is("WITH_OPENSSL", () -> {
+            System.out.println("Using OpenSSL for MQTT");
+            options.setSslEngineOptions(new OpenSSLEngineOptions());
+        });
 
         this.client = new MqttClientImpl(vertx, options);
 
