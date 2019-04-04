@@ -8,6 +8,7 @@
  * Contributors:
  *     Jens Reimann - initial API and implementation
  *******************************************************************************/
+
 package de.dentrassi.hono.demo.common;
 
 import java.nio.charset.StandardCharsets;
