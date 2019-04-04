@@ -140,7 +140,9 @@ public class Application {
                 .of("tenant", this.tenant)
                 .and(type.asTag());
 
-        this.consumer = new Consumer(this.runtime.getRegistry().counter("messages.received", commonTags));
+        this.consumer = new Consumer(
+                this.runtime.getRegistry().counter("messages.received", commonTags),
+                this.runtime.getRegistry().counter("payload.received", commonTags));
 
     }
 

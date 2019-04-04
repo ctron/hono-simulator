@@ -11,22 +11,35 @@
 
 package de.dentrassi.hono.simulator.consumer;
 
+import org.apache.qpid.proton.amqp.Binary;
+import org.apache.qpid.proton.amqp.messaging.Data;
+import org.apache.qpid.proton.amqp.messaging.Section;
 import org.apache.qpid.proton.message.Message;
 import io.micrometer.core.instrument.Counter;
 
 public class Consumer {
 
-    private final Counter counter;
+    private final Counter messages;
+    private final Counter payload;
 
-    public Consumer(final Counter counter) {
-        this.counter = counter;
+    public Consumer(final Counter messages, final Counter payload) {
+        this.messages = messages;
+        this.payload = payload;
     }
 
     public void handleMessage(final Message msg) {
-        this.counter.increment();
+        this.messages.increment();
+
+        final Section body = msg.getBody();
+        if (body instanceof Data) {
+            final Binary value = ((Data) body).getValue();
+            if (value != null) {
+                this.payload.increment(value.getLength());
+            }
+        }
     }
 
     public double count() {
-        return counter.count();
+        return messages.count();
     }
 }
