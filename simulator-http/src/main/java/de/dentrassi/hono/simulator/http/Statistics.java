@@ -37,7 +37,7 @@ public class Statistics {
         this.failure = registry.counter("messages_failure", commonTags);
         this.sent = registry.counter("messages_sent", commonTags);
         this.backlog = registry.gauge("messages_backlog", commonTags, new AtomicLong());
-        this.durations = this.registry.timer("messages_duration", commonTags);
+        this.durations = registry.timer("messages_duration", commonTags);
     }
 
     public void scheduled() {

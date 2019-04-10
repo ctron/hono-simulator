@@ -13,7 +13,6 @@ package de.dentrassi.hono.simulator.http;
 import static de.dentrassi.hono.demo.common.Select.oneOf;
 import static io.glutamate.lang.Environment.consumeAs;
 import static io.glutamate.lang.Environment.getAs;
-import java.util.Random;
 import de.dentrassi.hono.demo.common.AppRuntime;
 import de.dentrassi.hono.demo.common.ProducerConfig;
 import de.dentrassi.hono.demo.common.DeadlockDetector;
@@ -41,6 +40,8 @@ public class Application {
     private static final String METHOD = Environment.get("HTTP_METHOD").orElse("PUT");
 
     private static final boolean NOAUTH = Environment.getAs("HTTP_NOAUTH", false, Boolean::parseBoolean);
+
+    private static final String PASSWORD = Environment.get("DEVICE_PASSWORD").orElse("hono-secret");
 
     public static void main(final String[] args) throws Exception {
 
@@ -79,10 +80,6 @@ public class Application {
                 config.getType().asTag());
         final Statistics stats = new Statistics(registry, commonTags);
 
-        final TickExecutor tickExecutor = new TickExecutor();
-
-        final Random r = new Random();
-
         final var webClient = createWebClient(runtime.getVertx());
 
         for (int i = 0; i < numberOfDevices; i++) {
@@ -91,13 +88,12 @@ public class Application {
             final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
             final var request = createRequest(webClient, config, Payload.payload(), Tenant.TENANT, deviceId,
-                    username, "hono-secret");
+                    username, PASSWORD);
 
-            final Device device = new Device(() -> request, username, deviceId, Tenant.TENANT,
+            final Device device = new Device(runtime.getVertx(), () -> request, config, username, deviceId,
+                    Tenant.TENANT,
                     "hono-secret", register, Payload.payload(), stats);
-
-            tickExecutor.scheduleAtFixedRate(device::tick, r.nextInt((int) config.getPeriod().toMillis()),
-                    config.getPeriod().toMillis());
+            device.start();
 
         }
 
