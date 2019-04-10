@@ -18,7 +18,6 @@ import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.simulator.http.Device;
 import de.dentrassi.hono.simulator.http.DeviceProvider;
 import de.dentrassi.hono.simulator.http.Statistics;
-import okhttp3.OkHttpClient;
 
 public class DefaultProvider implements DeviceProvider {
 
@@ -26,7 +25,7 @@ public class DefaultProvider implements DeviceProvider {
     public interface Constructor {
 
         Device construct(Executor executor, String user, String deviceId, String tenant, String password,
-                OkHttpClient client, Register register, Payload payload, Statistics statistics,
+                Register register, Payload payload, Statistics statistics,
                 EventWriter eventWriter);
     }
 
@@ -45,9 +44,9 @@ public class DefaultProvider implements DeviceProvider {
 
     @Override
     public Device createDevice(final Executor executor, final String user, final String deviceId, final String tenant,
-            final String password, final OkHttpClient client, final Register register, final Payload payload,
+            final String password, final Register register, final Payload payload,
             final Statistics statistics, final EventWriter eventWriter) {
-        return this.constructor.construct(executor, user, deviceId, tenant, password, client, register, payload,
+        return this.constructor.construct(executor, user, deviceId, tenant, password, register, payload,
                 statistics, eventWriter);
     }
 

@@ -11,15 +11,12 @@
 package de.dentrassi.hono.simulator.http;
 
 import static io.glutamate.lang.Environment.getAs;
-import static java.lang.System.getenv;
-
 import java.util.Random;
 import java.util.ServiceLoader;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
@@ -37,8 +34,6 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.netty.handler.ssl.OpenSsl;
-import okhttp3.ConnectionPool;
-import okhttp3.OkHttpClient;
 
 public class Application {
 
@@ -75,42 +70,11 @@ public class Application {
         System.out.println("Key Manager: " + OpenSsl.supportsKeyManagerFactory());
         System.out.println("Host name validation: " + OpenSsl.supportsHostnameValidation());
 
-        final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
-
-        // "minimalistic" setting
-
-        if (getAs("OKHTTP_MINIMALISTIC_CONNECTION_POOL", false, Boolean::parseBoolean)) {
-            System.out.println("Using minimalistic OkHttp connection pool");
-            httpBuilder.connectionPool(new ConnectionPool(0, 1, TimeUnit.MILLISECONDS));
-        }
-
-        // explicit connection pool setting
-
-        final String poolSize = getenv("OKHTTP_CONNECTION_POOL_SIZE");
-
-        if (poolSize != null) {
-            System.out.println("Setting connection pool to: " + Integer.parseInt(poolSize));
-            final ConnectionPool connectionPool = new ConnectionPool(Integer.parseInt(poolSize), 1, TimeUnit.MINUTES);
-            httpBuilder.connectionPool(connectionPool);
-        }
-
-        // disable TLS validation
-
-        if (Tls.insecure()) {
-            Tls.makeOkHttpInsecure(httpBuilder);
-        }
-
         // create new client
-
-        final OkHttpClient http = httpBuilder.build();
-
-        getAs("OKHTTP_DISPATCHER_MAX_REQUESTS", Integer::parseInt).ifPresent(http.dispatcher()::setMaxRequests);
-        getAs("OKHTTP_DISPATCHER_MAX_REQUESTS_PER_HOST", Integer::parseInt)
-                .ifPresent(http.dispatcher()::setMaxRequestsPerHost);
 
         final String deviceIdPrefix = System.getenv("HOSTNAME");
 
-        final Register register = new Register(http, Tenant.TENANT);
+        final Register register = new Register(Tenant.TENANT);
         final MeterRegistry registry = runtime.getRegistry();
 
         final Tags commonTags = Tags.of(
@@ -121,7 +85,6 @@ public class Application {
         final Statistics stats = new Statistics(registry, commonTags);
 
         final ScheduledExecutorService statsExecutor = Executors.newSingleThreadScheduledExecutor();
-        // statsExecutor.scheduleAtFixedRate(Application::dumpStats, 1, 1, TimeUnit.SECONDS);
 
         final TickExecutor tickExecutor = new TickExecutor();
 
@@ -137,7 +100,7 @@ public class Application {
                 final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
                 final Device device = provider.createDevice(executor, username, deviceId, Tenant.TENANT,
-                        "hono-secret", http, register, Payload.payload(), stats,
+                        "hono-secret", register, Payload.payload(), stats,
                         EventWriter.nullWriter());
 
                 final Supplier<CompletableFuture<?>> ticker;

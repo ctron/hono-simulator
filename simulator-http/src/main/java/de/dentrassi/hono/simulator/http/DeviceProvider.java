@@ -16,12 +16,11 @@ import java.util.concurrent.Executor;
 import de.dentrassi.hono.demo.common.EventWriter;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.Register;
-import okhttp3.OkHttpClient;
 
 public interface DeviceProvider {
 
     String getName();
 
     Device createDevice(Executor executor, String user, String deviceId, String tenant, String password,
-            OkHttpClient client, Register register, Payload payload, Statistics statistics, EventWriter eventWriter);
+            Register register, Payload payload, Statistics statistics, EventWriter eventWriter);
 }

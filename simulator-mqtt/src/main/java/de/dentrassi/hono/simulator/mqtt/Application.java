@@ -23,12 +23,10 @@ import de.dentrassi.hono.demo.common.AppRuntime;
 import de.dentrassi.hono.demo.common.ProducerConfig;
 import de.dentrassi.hono.demo.common.Register;
 import de.dentrassi.hono.demo.common.Tenant;
-import de.dentrassi.hono.demo.common.Tls;
 import io.glutamate.lang.Environment;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tags;
 import io.netty.handler.ssl.OpenSsl;
-import okhttp3.OkHttpClient;
 
 public class Application {
 
@@ -61,13 +59,7 @@ public class Application {
 
         final String deviceIdPrefix = Environment.get("HOSTNAME").orElse("");
 
-        final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
-        if ( Tls.insecure()) {
-            Tls.makeOkHttpInsecure(httpBuilder);
-        }
-        final OkHttpClient http = httpBuilder.build();
-
-        final Register register = new Register(http, Tenant.TENANT);
+        final Register register = new Register(Tenant.TENANT);
 
         final ScheduledExecutorService executor = Executors.newScheduledThreadPool(numberOfThreads);
 
