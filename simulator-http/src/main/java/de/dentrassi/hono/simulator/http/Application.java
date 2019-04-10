@@ -49,6 +49,10 @@ public class Application {
                 DeadlockDetector detector = new DeadlockDetector();
                 AppRuntime runtime = new AppRuntime();) {
             runSimulator(runtime);
+        } catch (final Exception e) {
+            System.err.println("Failed to initialize application");
+            e.printStackTrace();
+            System.exit(1);
         }
 
     }
@@ -91,8 +95,7 @@ public class Application {
                     username, PASSWORD);
 
             final Device device = new Device(runtime.getVertx(), () -> request, config, username, deviceId,
-                    Tenant.TENANT,
-                    "hono-secret", register, Payload.payload(), stats);
+                    Tenant.TENANT, PASSWORD, register, Payload.payload(), stats);
             device.start();
 
         }
