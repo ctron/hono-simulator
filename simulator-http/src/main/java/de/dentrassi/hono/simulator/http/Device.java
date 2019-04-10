@@ -11,27 +11,35 @@
 package de.dentrassi.hono.simulator.http;
 
 import static de.dentrassi.hono.demo.common.Register.shouldRegister;
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
+import java.util.Random;
 import java.util.function.Supplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.Payload;
+import de.dentrassi.hono.demo.common.ProducerConfig;
 import de.dentrassi.hono.demo.common.Register;
 import io.glutamate.lang.Environment;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 
 public class Device {
 
+    private static final Random JITTER = new Random();
+
     private static final Logger logger = LoggerFactory.getLogger(Device.class);
 
     private static final boolean AUTO_REGISTER = Environment.getAs("AUTO_REGISTER", true, Boolean::parseBoolean);
+
+    private final Vertx vertx;
+    private final ProducerConfig config;
 
     private final Register register;
 
@@ -47,59 +55,92 @@ public class Device {
 
     private final Payload payload;
 
-    public Device(final Supplier<HttpRequest<?>> requestProvider, final String user, final String deviceId,
-            final String tenant, final String password, final Register register, final Payload payload,
-            final Statistics statistics) {
+    public Device(final Vertx vertx, final Supplier<HttpRequest<?>> requestProvider, final ProducerConfig config,
+            final String user, final String deviceId, final String tenant, final String password,
+            final Register register, final Payload payload, final Statistics statistics) {
 
         Objects.requireNonNull(requestProvider);
         Objects.requireNonNull(payload);
 
-        this.register = register;
+        this.vertx = vertx;
+        this.requestProvider = requestProvider;
+        this.config = config;
+
         this.user = user;
         this.deviceId = deviceId;
         this.password = password;
         this.statistics = statistics;
-
-        this.requestProvider = requestProvider;
+        this.register = register;
         this.payload = payload;
 
     }
 
-    public void register() throws Exception {
+    public void start() {
+        final var initialDelay = JITTER.nextInt((int) config.getPeriod().toMillis());
+        schedule(initialDelay);
+    }
+
+    private void schedule(final long delay) {
+        this.vertx.setTimer(delay, v -> tick());
+    }
+
+    protected Future<?> register() throws Exception {
+
         if (shouldRegister()) {
-            this.register.device(this.deviceId, this.user, this.password);
+
+            final Future<?> f = Future.future();
+            vertx.executeBlocking(v -> {
+                try {
+                    this.register.device(this.deviceId, this.user, this.password);
+                    v.complete();
+                } catch (final Exception e) {
+                    v.fail(e);
+                }
+            }, f);
+            return f;
+
+        } else {
+            return Future.succeededFuture();
         }
     }
 
-    public CompletableFuture<?> tick() {
+    protected void tick() {
+
+        final var start = Instant.now();
 
         this.statistics.scheduled();
-        final Instant start = Instant.now();
 
-        final CompletableFuture<?> future;
+        this.requestProvider
+                .get()
+                .sendBuffer(this.payload.getBuffer(), ar -> {
 
-        try {
-            future = process();
-        } catch (final Exception e) {
-            this.statistics.failed();
-            return CompletableFuture.completedFuture(null);
-        }
+                    response(start, ar)
+                            .setHandler(v -> scheduleNext(start.plus(config.getPeriod())));
 
-        return future.whenComplete((r, ex) -> {
-
-            if (ex != null) {
-                this.statistics.failed();
-                logger.debug("Failed to publish", ex);
-            }
-
-            final Duration dur = Duration.between(start, Instant.now());
-            this.statistics.duration(dur);
-        });
+                });
 
     }
 
-    protected void handleSuccess() {
+    private <T> Future<?> response(final Instant start, final AsyncResult<HttpResponse<T>> result) {
+        if (result.succeeded()) {
+            return handleResponse(start, result.result());
+        } else {
+            handleException(result.cause());
+            return Future.succeededFuture();
+        }
+    }
+
+    private void scheduleNext(final Instant next) {
+        var delay = Duration.between(Instant.now(), next).toMillis();
+        if (delay <= 0) {
+            delay = 1;
+        }
+        schedule(delay);
+    }
+
+    protected void handleSuccess(final Instant start) {
         this.statistics.success();
+        this.statistics.duration(Duration.between(start, Instant.now()));
     }
 
     protected void handleException(final Throwable e) {
@@ -107,7 +148,7 @@ public class Device {
         this.statistics.error(0);
     }
 
-    protected void handleFailure(final HttpResponse<?> response) {
+    protected Future<?> handleFailure(final HttpResponse<?> response) {
         this.statistics.failed();
         this.statistics.error(response.statusCode());
 
@@ -120,47 +161,27 @@ public class Device {
             case 401:
             case 403: //$FALL-THROUGH$
                 if (AUTO_REGISTER && shouldRegister()) {
-                    register();
+                    return register();
                 }
                 break;
             }
         } catch (final Exception e) {
             logger.warn("Failed to handle failure", e);
         }
+
+        return Future.succeededFuture();
     }
 
-    protected void handleResponse(final HttpResponse<?> response) {
+    protected Future<?> handleResponse(final Instant start, final HttpResponse<?> response) {
 
         final int code = response.statusCode();
         if (code < 200 || code > 299) {
-            handleFailure(response);
+            return handleFailure(response);
         } else {
-            handleSuccess();
+            handleSuccess(start);
+            return Future.succeededFuture();
         }
 
-    }
-
-    protected CompletableFuture<?> process() throws IOException {
-
-        final CompletableFuture<?> result = new CompletableFuture<>();
-
-        this.requestProvider
-                .get()
-                .sendBuffer(this.payload.getBuffer(), ar -> {
-
-                    final HttpResponse<?> response = ar.result();
-
-                    if (ar.succeeded()) {
-                        handleResponse(response);
-                        result.complete(null);
-                    } else {
-                        handleException(ar.cause());
-                        result.completeExceptionally(ar.cause());
-                    }
-
-                });
-
-        return result;
     }
 
 }
