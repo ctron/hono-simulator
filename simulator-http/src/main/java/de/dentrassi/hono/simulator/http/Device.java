@@ -89,12 +89,12 @@ public class Device {
         if (shouldRegister()) {
 
             final Future<?> f = Future.future();
-            vertx.executeBlocking(v -> {
+            this.vertx.executeBlocking(future -> {
                 try {
                     this.register.device(this.deviceId, this.user, this.password);
-                    v.complete();
+                    future.complete();
                 } catch (final Exception e) {
-                    v.fail(e);
+                    future.fail(e);
                 }
             }, f);
             return f;

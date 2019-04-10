@@ -84,8 +84,7 @@ public class Register {
     }
 
     public void device(final String deviceId, final String username,
-            final String password)
-            throws Exception {
+            final String password) throws Exception {
 
         try (final Response getDevice = this.http.newCall(new Request.Builder()
                 .url(
