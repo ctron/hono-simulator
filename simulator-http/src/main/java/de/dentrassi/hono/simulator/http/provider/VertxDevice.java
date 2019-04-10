@@ -40,7 +40,6 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
-import okhttp3.OkHttpClient;
 
 public class VertxDevice extends Device {
 
@@ -126,7 +125,7 @@ public class VertxDevice extends Device {
     private final String eventUrl;
 
     public VertxDevice(final Executor executor, final String user, final String deviceId, final String tenant,
-            final String password, final OkHttpClient client, final Register register, final Payload payload,
+            final String password, final Register register, final Payload payload,
             final Statistics statistics, final EventWriter eventWriter) {
         super(user, deviceId, tenant, password, register, statistics);
 

@@ -21,11 +21,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.squareup.okhttp3</groupId>
-            <artifactId>okhttp</artifactId>
-        </dependency>
-
-        <dependency>
             <groupId>de.dentrassi.hono.simulator</groupId>
             <artifactId>simulator-common</artifactId>
         </dependency>

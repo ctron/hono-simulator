@@ -72,9 +72,15 @@ public class Register {
     private final OkHttpClient http;
     private final String tenantId;
 
-    public Register(final OkHttpClient http, final String tenantId) {
-        this.http = http;
+    public Register(final String tenantId) {
         this.tenantId = tenantId;
+
+        final OkHttpClient.Builder httpBuilder = new OkHttpClient.Builder();
+        if (Tls.insecure()) {
+            Tls.makeOkHttpInsecure(httpBuilder);
+        }
+        this.http = httpBuilder.build();
+
     }
 
     public void device(final String deviceId, final String username,
