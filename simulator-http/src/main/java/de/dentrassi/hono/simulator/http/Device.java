@@ -76,7 +76,7 @@ public class Device {
     }
 
     public void start() {
-        final var initialDelay = JITTER.nextInt((int) config.getPeriod().toMillis());
+        final var initialDelay = JITTER.nextInt((int) config.getPeriod().toMillis()) + 1;
         schedule(initialDelay);
     }
 
