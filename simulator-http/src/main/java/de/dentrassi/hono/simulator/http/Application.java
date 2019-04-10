@@ -90,7 +90,7 @@ public class Application {
             final String username = String.format("user-%s-%s", deviceIdPrefix, i);
             final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
 
-            final var request = createRequest(webClient, config, Payload.payload(), Tenant.TENANT, deviceIdPrefix,
+            final var request = createRequest(webClient, config, Payload.payload(), Tenant.TENANT, deviceId,
                     username, "hono-secret");
 
             final Device device = new Device(() -> request, username, deviceId, Tenant.TENANT,
