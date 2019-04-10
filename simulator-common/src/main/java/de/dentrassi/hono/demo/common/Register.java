@@ -86,6 +86,13 @@ public class Register {
     public void device(final String deviceId, final String username,
             final String password) throws Exception {
 
+        if (REGISTRATION_URL == null) {
+            throw new IllegalStateException("'DEVICE_REGISTRY_URL' is not set");
+        }
+        if (CREDENTIALS_URL == null) {
+            throw new IllegalStateException("'DEVICE_REGISTRY_URL' is not set");
+        }
+
         try (final Response getDevice = this.http.newCall(new Request.Builder()
                 .url(
                         REGISTRATION_URL

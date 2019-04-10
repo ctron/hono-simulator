@@ -10,7 +10,6 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.http;
 
-import static de.dentrassi.hono.demo.common.Register.shouldRegister;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
@@ -23,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.ProducerConfig;
 import de.dentrassi.hono.demo.common.Register;
-import io.glutamate.lang.Environment;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -35,8 +33,6 @@ public class Device {
     private static final Random JITTER = new Random();
 
     private static final Logger logger = LoggerFactory.getLogger(Device.class);
-
-    private static final boolean AUTO_REGISTER = Environment.getAs("AUTO_REGISTER", true, Boolean::parseBoolean);
 
     private final Vertx vertx;
     private final ProducerConfig config;
@@ -85,23 +81,17 @@ public class Device {
     }
 
     protected Future<?> register() throws Exception {
-
-        if (shouldRegister()) {
-
-            final Future<?> f = Future.future();
-            this.vertx.executeBlocking(future -> {
-                try {
-                    this.register.device(this.deviceId, this.user, this.password);
-                    future.complete();
-                } catch (final Exception e) {
-                    future.fail(e);
-                }
-            }, f);
-            return f;
-
-        } else {
-            return Future.succeededFuture();
-        }
+        final Future<?> f = Future.future();
+        this.vertx.executeBlocking(future -> {
+            try {
+                this.register.device(this.deviceId, this.user, this.password);
+                future.complete();
+            } catch (final Exception e) {
+                logger.warn("Failed to register device - deviceId: {}, user: {}", deviceId, user, e);
+                future.fail(e);
+            }
+        }, f);
+        return f;
     }
 
     protected void tick() {
@@ -160,7 +150,7 @@ public class Device {
             switch (response.statusCode()) {
             case 401:
             case 403: //$FALL-THROUGH$
-                if (AUTO_REGISTER && shouldRegister()) {
+                if (Application.AUTO_REGISTER) {
                     return register();
                 }
                 break;
