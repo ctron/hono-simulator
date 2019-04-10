@@ -43,6 +43,8 @@ public class Application {
 
     private static final String PASSWORD = Environment.get("DEVICE_PASSWORD").orElse("hono-secret");
 
+    public static final boolean AUTO_REGISTER = Environment.getAs("AUTO_REGISTER", true, Boolean::parseBoolean);
+
     public static void main(final String[] args) throws Exception {
 
         try (
@@ -63,6 +65,7 @@ public class Application {
         final int numberOfThreads = getAs("NUM_THREADS", 10, Integer::parseInt);
 
         System.out.format("#devices: %s, #threads: %s%n", numberOfDevices, numberOfThreads);
+        System.out.format("Auto Register: %s%n", AUTO_REGISTER);
         System.out.format("TLS insecure: %s%n", Tls.insecure());
 
         System.out.println("Vertx Native: " + runtime.getVertx().isNativeTransportEnabled());
