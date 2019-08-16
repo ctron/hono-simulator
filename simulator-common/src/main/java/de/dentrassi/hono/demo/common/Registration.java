@@ -53,6 +53,7 @@ public interface Registration {
         }
 
         final Version version = Environment.get("DEVICE_REGISTRY_VERSION")
+                .filter(s -> !s.isBlank())
                 .map(String::toUpperCase)
                 .map(Version::valueOf)
                 .orElse(Version.LEGACY);
