@@ -100,7 +100,7 @@ public class RegistrationV1 extends AbstractRegistration {
         }
 
         final PasswordCredential pc = new PasswordCredential();
-        pc.setAuthId(deviceId);
+        pc.setAuthId(username);
         pc.setSecrets(Collections.singletonList(AddCredentials.sha512(password)));
 
         try (Response putCredentials = this.http.newCall(new Request.Builder()
