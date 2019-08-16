@@ -13,11 +13,14 @@ package de.dentrassi.hono.simulator.http;
 import static de.dentrassi.hono.demo.common.Select.oneOf;
 import static io.glutamate.lang.Environment.consumeAs;
 import static io.glutamate.lang.Environment.getAs;
+
+import java.util.Optional;
+
 import de.dentrassi.hono.demo.common.AppRuntime;
-import de.dentrassi.hono.demo.common.ProducerConfig;
 import de.dentrassi.hono.demo.common.DeadlockDetector;
 import de.dentrassi.hono.demo.common.Payload;
-import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.demo.common.ProducerConfig;
+import de.dentrassi.hono.demo.common.Registration;
 import de.dentrassi.hono.demo.common.Tenant;
 import de.dentrassi.hono.demo.common.Tls;
 import io.glutamate.lang.Environment;
@@ -78,7 +81,7 @@ public class Application {
 
         final String deviceIdPrefix = System.getenv("HOSTNAME");
 
-        final Register register = new Register(Tenant.TENANT);
+        final Optional<Registration> register = Registration.fromEnv();
         final MeterRegistry registry = runtime.getRegistry();
 
         final Tags commonTags = Tags.of(

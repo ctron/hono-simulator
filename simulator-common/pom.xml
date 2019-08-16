@@ -63,6 +63,12 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.eclipse.hono</groupId>
+            <artifactId>hono-service-base</artifactId>
+            <version>1.0-M6</version>
+        </dependency>
+
     </dependencies>
 
 </project>

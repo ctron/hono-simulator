@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2018 Red Hat Inc and others.
+ * Copyright (c) 2017, 2019 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -18,68 +18,46 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 
+import org.eclipse.hono.service.management.credentials.PasswordSecret;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class AddCredentials {
 
-    public static class Secret {
+    private static final SecureRandom r = new SecureRandom();
 
-        private static final SecureRandom r = new SecureRandom();
+    public static PasswordSecret digestPassword(final String password,
+            final String javaAlgorithm, final String honoAlgorithm) {
 
-        @JsonProperty("pwd-hash")
-        private String passwordHash;
+        try {
+            final MessageDigest md = MessageDigest.getInstance(javaAlgorithm);
 
-        private String salt;
+            final byte[] salt = new byte[4];
+            r.nextBytes(salt);
 
-        @JsonProperty("hash-function")
-        private String hashFunction;
+            final PasswordSecret result = new PasswordSecret();
+            result.setSalt(Base64.getEncoder().encodeToString(salt));
+            result.setHashFunction(honoAlgorithm);
 
-        public void setHashFunction(final String hashFunction) {
-            this.hashFunction = hashFunction;
+            md.update(salt);
+            final byte[] hash = md.digest(password.getBytes(StandardCharsets.UTF_8));
+
+            result.setPasswordHash(Base64.getEncoder().encodeToString(hash));
+
+            return result;
+
+        } catch (final Exception e) {
+            throw new RuntimeException(e);
         }
 
-        public void setPasswordHash(final String passwordHash) {
-            this.passwordHash = passwordHash;
-        }
+    }
 
-        public void setSalt(final String salt) {
-            this.salt = salt;
-        }
+    public static PasswordSecret sha512(final String password) {
+        return digestPassword(password, "SHA-512", "sha-512");
+    }
 
-        public String getHashFunction() {
-            return this.hashFunction;
-        }
-
-        public String getPasswordHash() {
-            return this.passwordHash;
-        }
-
-        public String getSalt() {
-            return this.salt;
-        }
-
-        public static Secret sha512(final String password) {
-            try {
-                final MessageDigest md = MessageDigest.getInstance("SHA-512");
-
-                final byte[] salt = new byte[4];
-                r.nextBytes(salt);
-
-                final Secret result = new Secret();
-                result.setSalt(Base64.getEncoder().encodeToString(salt));
-                result.setHashFunction("sha-512");
-
-                md.update(salt);
-                final byte[] hash = md.digest(password.getBytes(StandardCharsets.UTF_8));
-
-                result.setPasswordHash(Base64.getEncoder().encodeToString(hash));
-
-                return result;
-
-            } catch (final Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
+    public static PasswordSecret sha256(final String password) {
+        return digestPassword(password, "SHA-256", "sha-256");
     }
 
     private String type;
@@ -90,7 +68,7 @@ public class AddCredentials {
     @JsonProperty("auth-id")
     private String authId;
 
-    private List<Secret> secrets = new ArrayList<>();
+    private List<PasswordSecret> secrets = new ArrayList<>();
 
     public void setDeviceId(final String deviceId) {
         this.deviceId = deviceId;
@@ -108,11 +86,11 @@ public class AddCredentials {
         return this.authId;
     }
 
-    public void setSecrets(final List<Secret> secrets) {
+    public void setSecrets(final List<PasswordSecret> secrets) {
         this.secrets = secrets;
     }
 
-    public List<Secret> getSecrets() {
+    public List<PasswordSecret> getSecrets() {
         return this.secrets;
     }
 

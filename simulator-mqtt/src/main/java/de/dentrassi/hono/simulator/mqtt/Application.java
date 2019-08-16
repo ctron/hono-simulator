@@ -12,6 +12,7 @@ package de.dentrassi.hono.simulator.mqtt;
 
 import static io.micrometer.core.instrument.Tag.of;
 
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -21,7 +22,7 @@ import java.util.function.Function;
 
 import de.dentrassi.hono.demo.common.AppRuntime;
 import de.dentrassi.hono.demo.common.ProducerConfig;
-import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.demo.common.Registration;
 import de.dentrassi.hono.demo.common.Tenant;
 import io.glutamate.lang.Environment;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -59,7 +60,7 @@ public class Application {
 
         final String deviceIdPrefix = Environment.get("HOSTNAME").orElse("");
 
-        final Register register = new Register(Tenant.TENANT);
+        final Optional<Registration> register = Registration.fromEnv();
 
         final ScheduledExecutorService executor = Executors.newScheduledThreadPool(numberOfThreads);
 

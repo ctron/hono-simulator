@@ -10,14 +10,14 @@
  *******************************************************************************/
 package de.dentrassi.hono.simulator.mqtt;
 
-import static de.dentrassi.hono.demo.common.Register.shouldRegister;
 import static io.glutamate.lang.Environment.is;
 
+import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 
 import de.dentrassi.hono.demo.common.Payload;
-import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.demo.common.Registration;
 import de.dentrassi.hono.demo.common.Tls;
 import de.dentrassi.hono.simulator.mqtt.vertx.MqttClientImpl;
 import io.glutamate.lang.Environment;
@@ -37,7 +37,7 @@ public class Device {
 
     private final Vertx vertx;
 
-    private final Register register;
+    private final Registration register;
 
     private final String deviceId;
 
@@ -64,10 +64,11 @@ public class Device {
     private long connectTimer = -1;
 
     public Device(final Vertx vertx, final String username, final String deviceId, final String tenant,
-            final String password, final Register register, final AtomicLong connectedCount, final Statistics stats) {
+            final String password, final Optional<Registration> register, final AtomicLong connectedCount,
+            final Statistics stats) {
 
         this.vertx = vertx;
-        this.register = register;
+        this.register = register.orElse(null);
 
         this.deviceId = deviceId;
         this.username = username;
@@ -227,7 +228,7 @@ public class Device {
     }
 
     private void register() {
-        if (AUTO_REGISTER && shouldRegister()) {
+        if (this.register != null && AUTO_REGISTER) {
             System.out.println("Failed to connect ... try auto register");
             try {
                 this.register.device(this.deviceId, this.username, this.password);
