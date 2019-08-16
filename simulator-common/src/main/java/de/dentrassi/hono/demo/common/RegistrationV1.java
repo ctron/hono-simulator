@@ -76,9 +76,10 @@ public class RegistrationV1 extends AbstractRegistration {
                         .post(RequestBody.create(MT_JSON, "{}" /* empty object */))
                         .build()).execute()) {
 
-                    logger.debug("Registration URL - post: {}", newDevice.request().url());
-
                     if (!newDevice.isSuccessful()) {
+
+                        logger.info("Registration URL - post: {}", newDevice.request().url());
+
                         throw new RuntimeException(
                                 "Unable to register device: " + deviceId + " -> " + newDevice.code() + ": "
                                         + newDevice.message());
@@ -101,9 +102,10 @@ public class RegistrationV1 extends AbstractRegistration {
                 .build())
                 .execute()) {
 
-            logger.debug("Credentials URL - put: {}", putCredentials.request().url());
-
             if (!putCredentials.isSuccessful()) {
+
+                logger.info("Credentials URL - put: {}", putCredentials.request().url());
+
                 throw new RuntimeException(
                         "Unable to register user: " + username + " -> " + putCredentials.code() + ": "
                                 + putCredentials.message());
