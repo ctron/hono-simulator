@@ -13,6 +13,7 @@ package de.dentrassi.hono.simulator.http;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Random;
 import java.util.function.Supplier;
 
@@ -21,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.Payload;
 import de.dentrassi.hono.demo.common.ProducerConfig;
-import de.dentrassi.hono.demo.common.Register;
+import de.dentrassi.hono.demo.common.Registration;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -37,7 +38,7 @@ public class Device {
     private final Vertx vertx;
     private final ProducerConfig config;
 
-    private final Register register;
+    private final Registration register;
 
     private final String user;
 
@@ -53,7 +54,7 @@ public class Device {
 
     public Device(final Vertx vertx, final Supplier<HttpRequest<?>> requestProvider, final ProducerConfig config,
             final String user, final String deviceId, final String tenant, final String password,
-            final Register register, final Payload payload, final Statistics statistics) {
+            final Optional<Registration> register, final Payload payload, final Statistics statistics) {
 
         Objects.requireNonNull(requestProvider);
         Objects.requireNonNull(payload);
@@ -66,7 +67,7 @@ public class Device {
         this.deviceId = deviceId;
         this.password = password;
         this.statistics = statistics;
-        this.register = register;
+        this.register = register.orElse(null);
         this.payload = payload;
 
     }
@@ -150,7 +151,7 @@ public class Device {
             switch (response.statusCode()) {
             case 401:
             case 403: //$FALL-THROUGH$
-                if (Application.AUTO_REGISTER) {
+                if (this.register != null && Application.AUTO_REGISTER) {
                     return register();
                 }
                 break;
