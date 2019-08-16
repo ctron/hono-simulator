@@ -35,8 +35,14 @@ public class RegistrationV1 extends AbstractRegistration {
     public RegistrationV1(final String tenantId, final HttpUrl deviceRegistryUrl) {
         super(tenantId);
 
-        this.registrationUrl = deviceRegistryUrl.resolve("/devices/");
-        this.credentialsUrl = deviceRegistryUrl.resolve("/credentials/");
+        this.registrationUrl = deviceRegistryUrl
+                .newBuilder()
+                .addPathSegment("devices")
+                .build();
+        this.credentialsUrl = deviceRegistryUrl
+                .newBuilder()
+                .addPathSegment("credentials")
+                .build();
     }
 
     @Override
@@ -53,8 +59,10 @@ public class RegistrationV1 extends AbstractRegistration {
         try (final Response getDevice = this.http.newCall(new Request.Builder()
                 .url(
                         this.registrationUrl
-                                .resolve(this.tenantId + "/")
-                                .resolve(deviceId))
+                                .newBuilder()
+                                .addPathSegment(this.tenantId)
+                                .addPathSegment(deviceId)
+                                .build())
                 .get()
                 .build()).execute()) {
 
@@ -71,8 +79,10 @@ public class RegistrationV1 extends AbstractRegistration {
                 try (final Response newDevice = this.http.newCall(new Request.Builder()
                         .url(
                                 this.registrationUrl
-                                        .resolve(this.tenantId + "/")
-                                        .resolve(deviceId))
+                                        .newBuilder()
+                                        .addPathSegment(this.tenantId)
+                                        .addPathSegment(deviceId)
+                                        .build())
                         .post(RequestBody.create(MT_JSON, "{}" /* empty object */))
                         .build()).execute()) {
 
@@ -96,8 +106,10 @@ public class RegistrationV1 extends AbstractRegistration {
         try (Response putCredentials = this.http.newCall(new Request.Builder()
                 .url(
                         this.credentialsUrl
-                                .resolve(this.tenantId + "/")
-                                .resolve(deviceId))
+                                .newBuilder()
+                                .addPathSegment(this.tenantId)
+                                .addPathSegment(deviceId)
+                                .build())
                 .put(RequestBody.create(MT_JSON, encode(new CommonCredential[] { pc })))
                 .build())
                 .execute()) {
