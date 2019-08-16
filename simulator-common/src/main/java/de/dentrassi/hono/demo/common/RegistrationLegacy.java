@@ -32,8 +32,8 @@ public class RegistrationLegacy extends AbstractRegistration {
     public RegistrationLegacy(final String tenantId, final HttpUrl deviceRegistryUrl) {
         super(tenantId);
 
-        this.registrationUrl = deviceRegistryUrl.resolve("/registration/");
-        this.credentialsUrl = deviceRegistryUrl.resolve("/credentials/");
+        this.registrationUrl = deviceRegistryUrl.resolve("registration/");
+        this.credentialsUrl = deviceRegistryUrl.resolve("credentials/");
     }
 
     @Override
