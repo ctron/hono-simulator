@@ -35,7 +35,7 @@ public class RegistrationV1 extends AbstractRegistration {
     public RegistrationV1(final String tenantId, final HttpUrl deviceRegistryUrl) {
         super(tenantId);
 
-        this.registrationUrl = deviceRegistryUrl.resolve("/device/");
+        this.registrationUrl = deviceRegistryUrl.resolve("/devices/");
         this.credentialsUrl = deviceRegistryUrl.resolve("/credentials/");
     }
 
