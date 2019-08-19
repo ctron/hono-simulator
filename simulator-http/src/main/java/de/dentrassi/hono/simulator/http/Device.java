@@ -106,7 +106,7 @@ public class Device {
                 .sendBuffer(this.payload.getBuffer(), ar -> {
 
                     response(start, ar)
-                            .setHandler(v -> scheduleNext(start.plus(config.getPeriod())));
+                            .setHandler(v -> scheduleNext(start.plus(this.config.getPeriod())));
 
                 });
 
