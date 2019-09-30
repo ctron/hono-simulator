@@ -11,6 +11,12 @@ Deploying the different parts of the simulator can be tricky. But there is an
 operator which will set up Prometheus, the web console and deploy the different
 producer and consumers.
 
+### OperatorHub.io
+
+You can directly download install the operator via [OperatorHub.io](https://operatorhub.io/operator/iot-simulator "IoT simulator on OperatorHub.io").
+
+### Manual operator installation
+
 All you need is the [OLM](https://github.com/operator-framework/operator-lifecycle-manager "Operator Lifecycle Manager") installed and then:
 
     oc apply -f https://raw.githubusercontent.com/ctron/iot-simulator-operator/master/operator/iot-simulator-simulators.crd.yaml
