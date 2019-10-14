@@ -53,6 +53,7 @@ spec:
       caCertificate: ''
     registry:
       url: 'https://your-device-registry'
+      apiVersion: LEGACY # or V1
     adapters:
       mqtt:
         host: mqtt-adapter.hono.svc
