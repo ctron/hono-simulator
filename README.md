@@ -45,13 +45,13 @@ metadata:
   namespace: iot-simulator
 spec:
   endpoint:
-    messaging:
+    messaging: # Messaging endpoint information
       user: foo
       password: bar
       host: messaging.host.hono.svc
       port: '5671'
       caCertificate: ''
-    registry:
+    registry: # Device registry endpoint
       url: 'https://your-device-registry'
       apiVersion: LEGACY # or V1
     adapters:
@@ -71,7 +71,7 @@ metadata:
   name: consumer1
   namespace: iot-simulator
 spec:
-  simulator: hono1
+  simulator: hono1 # metadata.name of the Simulator resource
   tenant: myapp1.iot
   type: telemetry
   replicas: 1
@@ -86,10 +86,10 @@ metadata:
   name: producer1
   namespace: iot-simulator
 spec:
-  simulator: hono1
+  simulator: hono1 # metadata.name of the Simulator resource
   tenant: myapp1.iot
-  type: telemetry
-  protocol: http
+  type: telemetry # or 'event'
+  protocol: http # or 'mqtt'
   replicas: 1
   numberOfDevices: 10
 ~~~
