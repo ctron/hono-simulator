@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Red Hat Inc and others.
+ * Copyright (c) 2017, 2020 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v2.0
  * which accompanies this distribution, and is available at
@@ -20,6 +20,8 @@ import org.eclipse.hono.service.management.credentials.PasswordCredential;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.net.HttpHeaders;
+
 import okhttp3.HttpUrl;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -32,8 +34,16 @@ public class RegistrationV1 extends AbstractRegistration {
     private final HttpUrl registrationUrl;
     private final HttpUrl credentialsUrl;
 
-    public RegistrationV1(final String tenantId, final HttpUrl deviceRegistryUrl) {
+    private final String authzString;
+
+    public RegistrationV1(final String tenantId, String token, final HttpUrl deviceRegistryUrl) {
         super(tenantId);
+
+        if (token != null && !token.isBlank()) {
+            this.authzString = String.format("Bearer %s", token);
+        } else {
+            this.authzString = null;
+        }
 
         this.registrationUrl = deviceRegistryUrl
                 .newBuilder()
@@ -63,6 +73,7 @@ public class RegistrationV1 extends AbstractRegistration {
                                 .addPathSegment(this.tenantId)
                                 .addPathSegment(deviceId)
                                 .build())
+                .addHeader(HttpHeaders.AUTHORIZATION, this.authzString)
                 .get()
                 .build()).execute()) {
 
@@ -83,6 +94,7 @@ public class RegistrationV1 extends AbstractRegistration {
                                         .addPathSegment(this.tenantId)
                                         .addPathSegment(deviceId)
                                         .build())
+                        .addHeader(HttpHeaders.AUTHORIZATION, this.authzString)
                         .post(RequestBody.create(MT_JSON, "{}" /* empty object */))
                         .build()).execute()) {
 
@@ -110,7 +122,8 @@ public class RegistrationV1 extends AbstractRegistration {
                                 .addPathSegment(this.tenantId)
                                 .addPathSegment(deviceId)
                                 .build())
-                .put(RequestBody.create(MT_JSON, encode(new CommonCredential[] { pc })))
+                .addHeader(HttpHeaders.AUTHORIZATION, this.authzString)
+                .put(RequestBody.create(MT_JSON, encode(new CommonCredential[] {pc})))
                 .build())
                 .execute()) {
 
