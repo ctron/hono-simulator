@@ -135,6 +135,7 @@ public class Device {
     }
 
     protected void handleException(final Throwable e) {
+        logger.debug("Failed to tick device", e);
         this.statistics.failed();
         this.statistics.error(0);
     }
