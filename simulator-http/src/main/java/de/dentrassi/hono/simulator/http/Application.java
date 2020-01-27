@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2017, 2019 Red Hat Inc and others.
+ * Copyright (c) 2017, 2020 Red Hat Inc and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -15,6 +15,9 @@ import static io.glutamate.lang.Environment.consumeAs;
 import static io.glutamate.lang.Environment.getAs;
 
 import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import de.dentrassi.hono.demo.common.AppRuntime;
 import de.dentrassi.hono.demo.common.DeadlockDetector;
@@ -37,6 +40,8 @@ import io.vertx.ext.web.client.WebClientOptions;
 import okhttp3.Credentials;
 
 public class Application {
+
+    private static final Logger logger = LoggerFactory.getLogger(Application.class);
 
     private static final ProducerConfig config = ProducerConfig.fromEnv();
 
@@ -96,6 +101,8 @@ public class Application {
 
             final String username = String.format("user-%s-%s", deviceIdPrefix, i);
             final String deviceId = String.format("%s-%s", deviceIdPrefix, i);
+
+            logger.debug("Starting device - deviceId: {}, authId: {}", deviceId, username);
 
             final var request = createRequest(webClient, config, Payload.payload(), Tenant.TENANT, deviceId,
                     username, PASSWORD);
